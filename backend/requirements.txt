@@ -1,0 +1,19 @@
+# Workspace version: 1.46.40
+python-multipart==0.0.9
+databutton==0.38.34
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+ipykernel==6.29.5
+openai
+beautifulsoup4
+requests
+asyncpg
+aiofiles
+pypdf2
+python-docx
+tiktoken
+lxml
+python-magic
+tika
+email-validator
+Pillow
