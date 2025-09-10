@@ -7,37 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AdminLayout } from "components/AdminLayout";
+import { AdminLayout } from "../components/AdminLayout";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import brain from "brain";
+import brain from "../brain";
 import { TenantProvisionRequest } from "types";
+import { useSuperAdmin } from "../components/AuthMiddleware";
 
 const AdminProvisioning = () => {
+  const { isSuperAdmin, isLoading: authLoading } = useSuperAdmin();
   const [loading, setLoading] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
-  const [checkingPermissions, setCheckingPermissions] = useState(true);
-  
-  // Check super admin status on mount
-  useEffect(() => {
-    const checkSuperAdmin = async () => {
-      try {
-        const response = await brain.check_super_admin();
-        const data = await response.json();
-        setIsSuperAdmin(data.is_super_admin);
-      } catch (error) {
-        console.error('Failed to check super admin status:', error);
-        setIsSuperAdmin(false);
-      } finally {
-        setCheckingPermissions(false);
-      }
-    };
-
-    // Only run once on mount
-    if (checkingPermissions) {
-      checkSuperAdmin();
-    }
-  }, []); // Remove dependencies to prevent infinite loop
 
   const [formData, setFormData] = useState({
     tenantName: "",
@@ -123,7 +102,7 @@ const AdminProvisioning = () => {
   };
 
   // Show loading while checking permissions
-  if (checkingPermissions) {
+  if (authLoading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center min-h-screen">

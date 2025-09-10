@@ -1,5 +1,5 @@
 import React from "react";
-import { Header } from "components/Header";
+import { Header } from "@/components/Header";
 import { Separator } from "@/components/ui/separator";
 
 interface LayoutProps {
@@ -8,10 +8,19 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children, showNavigation = true }: LayoutProps) => {
+  const handleToggleTheme = () => {
+    const currentTheme = localStorage.getItem('theme') || 'system';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.className = newTheme;
+  };
+
+  const isDarkMode = localStorage.getItem('theme') === 'dark';
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <Header showNavigation={showNavigation} />
+      <Header onToggleTheme={handleToggleTheme} isDarkMode={isDarkMode} />
       
       {/* Main Content */}
       <main className="flex-1">

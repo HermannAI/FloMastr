@@ -2,7 +2,6 @@
 from fastapi import HTTPException, Depends, Request
 from typing import Optional
 import asyncpg
-import databutton as db
 from app.auth import AuthorizedUser
 import re
 # Import centralized database connection

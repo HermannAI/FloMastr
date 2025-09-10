@@ -8,7 +8,6 @@ from uuid import UUID
 import uuid
 import json
 import asyncpg
-import databutton as db
 from app.auth import AuthorizedUser
 from app.libs.tenant_auth import TenantAuthorizedUser, TenantUserDep
 from app.libs.db_connection import get_db_connection

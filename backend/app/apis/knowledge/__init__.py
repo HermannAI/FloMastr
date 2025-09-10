@@ -5,7 +5,6 @@ from typing import Optional, List
 import asyncpg
 import uuid
 from datetime import datetime
-import databutton as db
 from app.auth import AuthorizedUser
 from app.libs.backend_auth import require_backend_token
 from app.libs.tenant_auth import TenantAuthorizedUser, TenantUserDep

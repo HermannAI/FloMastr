@@ -6,7 +6,7 @@ import jwt
 import json
 from app.auth import AuthorizedUser
 from app.libs.auth_utils import get_normalized_user_context, is_super_admin_normalized
-import databutton as db
+import os
 
 router = APIRouter()
 
@@ -30,7 +30,7 @@ async def debug_jwt_token(request: Request, user: AuthorizedUser) -> JWTDebugRes
         "auth_header_present": bool(request.headers.get("authorization")),
         "user_object_type": str(type(user)),
         "user_has_email_attr": hasattr(user, 'email'),
-        "disable_auth_test_mode": db.secrets.get("DISABLE_AUTH_TEST_MODE"),
+        "disable_auth_test_mode": os.getenv("DISABLE_AUTH_TEST_MODE"),
         "normalized_user_id": normalized_context["user_id"],
         "original_user_id": normalized_context["original_user_id"],
         "is_normalized": normalized_context["is_normalized"],
@@ -103,9 +103,9 @@ async def debug_auth_status() -> Dict[str, Any]:
     """Debug endpoint to check auth configuration"""
     
     return {
-        "stack_secret_key_configured": bool(db.secrets.get("STACK_SECRET_SERVER_KEY")),
-        "disable_auth_test_mode": db.secrets.get("DISABLE_AUTH_TEST_MODE"),
-        "super_admin_ids": db.secrets.get("SUPER_ADMIN_IDS"),
+        "stack_secret_key_configured": bool(os.getenv("STACK_SECRET_SERVER_KEY")),
+        "disable_auth_test_mode": os.getenv("DISABLE_AUTH_TEST_MODE"),
+        "super_admin_ids": os.getenv("SUPER_ADMIN_IDS"),
         "project_id": "34204b2d-cb69-4af7-b557-fd752531f1c3",
         "jwks_url": "https://api.stack-auth.com/api/v1/projects/34204b2d-cb69-4af7-b557-fd752531f1c3/.well-known/jwks.json"
     }

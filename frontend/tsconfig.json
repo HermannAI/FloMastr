@@ -21,6 +21,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
+    "types": [],
     "paths": {
       "brain": [
         "./src/brain"

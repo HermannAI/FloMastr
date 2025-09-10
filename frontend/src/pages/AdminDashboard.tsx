@@ -3,13 +3,13 @@
 
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
 import { Users, Package, Settings, Activity, Database, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import brain from 'brain';
-import { AdminLayout } from 'components/AdminLayout';
+import brain from '../brain';
+import { AdminLayout } from '../components/AdminLayout';
 
 interface DashboardStats {
   totalTenants: number;
@@ -33,18 +33,22 @@ const AdminDashboard = () => {
       try {
         // Load dashboard statistics
         const [tenantsResponse, usersResponse] = await Promise.allSettled([
-          brain.list_tenants(),
+          brain.list_tenants({}),
           brain.list_users()
         ]);
 
+        console.log('API Responses:', { tenantsResponse, usersResponse });
+
         const newStats: DashboardStats = {
-          totalTenants: tenantsResponse.status === 'fulfilled' ? 
+          totalTenants: tenantsResponse.status === 'fulfilled' && tenantsResponse.value?.json ? 
             (await tenantsResponse.value.json()).length : 0,
           activeBundles: 0, // Placeholder until bundles API is implemented
-          totalUsers: usersResponse.status === 'fulfilled' ? 
+          totalUsers: usersResponse.status === 'fulfilled' && usersResponse.value?.json ? 
             (await usersResponse.value.json()).length : 0,
           pendingTasks: 0 // Will implement when HITL tasks endpoint is available
         };
+
+        console.log('New stats:', newStats);
 
         setStats(newStats);
       } catch (error) {

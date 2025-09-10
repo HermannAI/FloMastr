@@ -1,4 +1,4 @@
-import TestMutation from 'components/TestMutation';
+import TestMutation from '../components/TestMutation';
 
 const TestMutationPage = () => {
   return (

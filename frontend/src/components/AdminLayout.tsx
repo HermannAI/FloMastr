@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { useAuthenticatedUser, useSuperAdmin } from 'components/AuthMiddleware';
+import { Button } from './ui/button';
+import { useAuthenticatedUser, useSuperAdmin } from './AuthMiddleware';
 import { toast } from 'sonner';
-import { AdminNavigation } from 'components/AdminNavigation';
-import { Header } from 'components/Header';
-import { useTenantNavigation } from 'utils/navigation';
+import { AdminNavigation } from './AdminNavigation';
+import { Header } from './Header';
+import { useTenantNavigation } from '../utils/navigation';
 
 interface AdminLayoutProps {
   children: React.ReactNode;

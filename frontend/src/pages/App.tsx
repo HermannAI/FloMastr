@@ -1,19 +1,23 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useNavigate, useLocation } from "react-router-dom";
-import { ThemeToggle } from "components/ThemeToggle";
-import { useEffect } from "react";
-import { useUser } from "@stackframe/react";
-import brain from "brain";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useClerk } from "@clerk/clerk-react";
 
 export default function App() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const user = useUser();
-
+  const { signOut, user } = useClerk();
+  
   // FloMastr static logo URL (same as used in Header component)
   const FLOMASTR_LOGO_URL = "https://static.databutton.com/public/15880048-1dbd-4cea-820f-d5fbc363499d/FloMastr-App.svg";
+
+  const handleForceLogout = async () => {
+    try {
+      await signOut();
+      window.location.reload();
+    } catch (error) {
+      console.error('Force logout error:', error);
+    }
+  };
 
   const handleWhatsAppTry = () => {
     // Link to WhappStream tenant's WhatsApp channel
@@ -21,7 +25,8 @@ export default function App() {
   };
 
   const handleTenantLogin = () => {
-    navigate("/login");
+    // Navigate to login page using window.location for root component
+    window.location.href = "/login";
   };
 
   return (
@@ -75,6 +80,16 @@ export default function App() {
             >
               Tenant Login
             </Button>
+            {user && (
+              <Button 
+                onClick={handleForceLogout}
+                variant="outline"
+                className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-8 py-3 text-lg"
+                size="lg"
+              >
+                Force Logout (Test)
+              </Button>
+            )}
           </div>
         </div>
       </section>

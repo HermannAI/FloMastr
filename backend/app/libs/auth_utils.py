@@ -4,21 +4,19 @@
 """Authentication utilities for normalizing user authentication across development and production.
 
 This module provides utilities to handle authentication inconsistencies between
-the Databutton development framework (which uses test auth) and Stack Auth.
+standard environment variables and Clerk authentication.
 """
 
-import databutton as db
 from typing import Optional
-from app.env import Mode, mode
+import os
 
 
 def is_super_admin(user) -> bool:
     """
     Centralized function to check if a user is a super admin.
     
-    This function consolidates all super admin validation logic and reads from
-    the SUPER_ADMIN_IDS environment variable which contains a comma-separated
-    list of user IDs that have super admin privileges.
+    This function consolidates all super admin validation logic and checks both
+    SUPER_ADMIN_IDS (user IDs) and SUPER_ADMIN_EMAILS (email addresses).
     
     Args:
         user: The user object from AuthorizedUser dependency or user ID string
@@ -26,18 +24,43 @@ def is_super_admin(user) -> bool:
     Returns:
         True if the user is a super admin, False otherwise
     """
-    # Extract user ID from user object or use directly if it's a string
-    user_id = getattr(user, 'sub', str(user)) if hasattr(user, 'sub') else str(user)
+    # Extract user ID and email from user object
+    user_id = getattr(user, 'sub', None) or getattr(user, 'user_id', None)
+    user_email = getattr(user, 'email', None)
     
-    # Get the comma-separated list of super admin IDs
-    super_admin_ids_str = db.secrets.get("SUPER_ADMIN_IDS")
-    if not super_admin_ids_str:
-        return False
+    print(f"🔍 IS_SUPER_ADMIN: User object: {user}")
+    print(f"🔍 IS_SUPER_ADMIN: Extracted user_id: {user_id}")
+    print(f"🔍 IS_SUPER_ADMIN: Extracted user_email: {user_email}")
+    
+    # Check by email first (for Clerk authentication)
+    super_admin_emails_str = os.getenv("SUPER_ADMIN_EMAILS", "")
+    print(f"🔍 IS_SUPER_ADMIN: SUPER_ADMIN_EMAILS env var: '{super_admin_emails_str}'")
+    
+    if super_admin_emails_str and user_email:
+        super_admin_emails = [e.strip().lower() for e in super_admin_emails_str.split(',') if e.strip()]
+        print(f"🔍 IS_SUPER_ADMIN: Parsed super admin emails: {super_admin_emails}")
+        print(f"🔍 IS_SUPER_ADMIN: User email lower: '{user_email.lower()}'")
+        print(f"🔍 IS_SUPER_ADMIN: Email in list: {user_email.lower() in super_admin_emails}")
         
-    # Parse the comma-separated list and check if user ID is in it
-    super_admin_ids = [admin_id.strip() for admin_id in super_admin_ids_str.split(',') if admin_id.strip()]
+        if user_email.lower() in super_admin_emails:
+            print("✅ IS_SUPER_ADMIN: Match found by email!")
+            return True
     
-    return user_id in super_admin_ids
+    # Check by user ID from environment variable
+    super_admin_ids_str = os.getenv("SUPER_ADMIN_IDS", "")
+    print(f"🔍 IS_SUPER_ADMIN: SUPER_ADMIN_IDS env var: '{super_admin_ids_str}'")
+    
+    if super_admin_ids_str and user_id:
+        super_admin_ids = [admin_id.strip() for admin_id in super_admin_ids_str.split(',') if admin_id.strip()]
+        print(f"🔍 IS_SUPER_ADMIN: Parsed super admin IDs: {super_admin_ids}")
+        print(f"🔍 IS_SUPER_ADMIN: User ID in list: {user_id in super_admin_ids}")
+        
+        if user_id in super_admin_ids:
+            print("✅ IS_SUPER_ADMIN: Match found by user ID!")
+            return True
+    
+    print("❌ IS_SUPER_ADMIN: No match found")
+    return False
 
 
 def normalize_user_id(user_id: str) -> str:
@@ -53,11 +76,12 @@ def normalize_user_id(user_id: str) -> str:
     Returns:
         The normalized user ID (proper UUID)
     """
-    # Get the configured super admin ID
-    super_admin_id = db.secrets.get("SUPER_ADMIN_IDS")
+    # Get the configured super admin IDs
+    super_admin_ids_str = os.getenv("SUPER_ADMIN_IDS", "")
+    super_admin_ids = [admin_id.strip() for admin_id in super_admin_ids_str.split(',') if admin_id.strip()]
     
-    # If already the correct UUID, return as-is
-    if user_id == super_admin_id:
+    # If user_id is in super admin list, return as-is
+    if user_id in super_admin_ids:
         return user_id
         
     # For all other users, return the original ID
@@ -79,8 +103,9 @@ def is_super_admin_normalized(user_id: str) -> bool:
         True if the user is a super admin, False otherwise
     """
     normalized_id = normalize_user_id(user_id)
-    super_admin_id = db.secrets.get("SUPER_ADMIN_IDS")
-    return normalized_id == super_admin_id
+    super_admin_ids_str = os.getenv("SUPER_ADMIN_IDS", "")
+    super_admin_ids = [admin_id.strip() for admin_id in super_admin_ids_str.split(',') if admin_id.strip()]
+    return normalized_id in super_admin_ids
 
 
 def get_normalized_user_context(user) -> dict:

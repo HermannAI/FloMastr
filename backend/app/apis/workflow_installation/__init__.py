@@ -5,7 +5,7 @@ from typing import Optional
 from app.auth import AuthorizedUser
 from app.libs.tenant_auth import TenantAuthorizedUser, TenantUserDep
 import requests
-import databutton as db
+import os
 
 router = APIRouter()
 
@@ -33,8 +33,8 @@ async def install_workflow(
     
     try:
         # Get API keys from secrets
-        n8n_master_api_key = db.secrets.get("N8N_MASTER_API_KEY")
-        n8n_api_key = db.secrets.get("N8N_API_KEY")
+        n8n_master_api_key = os.getenv("N8N_MASTER_API_KEY")
+        n8n_api_key = os.getenv("N8N_API_KEY")
         
         if not n8n_master_api_key or not n8n_api_key:
             raise HTTPException(

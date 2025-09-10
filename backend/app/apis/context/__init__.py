@@ -9,7 +9,7 @@ import re
 from uuid import UUID
 from app.libs.database import get_db_connection
 import requests
-import databutton as db
+import os
 from app.auth import AuthorizedUser
 from app.libs.tenant_auth import TenantAuthorizedUser, TenantUserDep
 
@@ -399,7 +399,7 @@ async def add_paste(
     
     try:
         # Get the API secret token for n8n authentication
-        api_secret = db.secrets.get("BACKEND_API_SECRET_TOKEN")
+        api_secret = os.getenv("BACKEND_API_SECRET_TOKEN")
         if not api_secret:
             raise HTTPException(status_code=500, detail="API secret token not configured")
         

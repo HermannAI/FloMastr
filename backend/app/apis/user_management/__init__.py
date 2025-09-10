@@ -1,28 +1,32 @@
 
 
 
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, HTTPException, status, Request, Depends
+from pydantic import BaseModel
 from typing import List, Optional
 from enum import Enum
 from datetime import datetime
 import asyncpg
-import databutton as db
-from app.auth import AuthorizedUser
+from app.libs.clerk_auth import get_authorized_user, ClerkUser
 
 # Import centralized database connection
 from app.libs.db_connection import get_db_connection
 
 router = APIRouter()
 
-def is_super_admin(user: AuthorizedUser) -> bool:
+def is_super_admin(user: ClerkUser) -> bool:
     """Check if user is a super admin"""
-    super_admin_ids_str = db.secrets.get("SUPER_ADMIN_IDS")
-    if not super_admin_ids_str:
-        return False
-    
-    super_admin_ids = [id.strip() for id in super_admin_ids_str.split(',') if id.strip()]
-    return user.sub in super_admin_ids
+    import os
+
+    # Check by email (same as tenant resolution API)
+    super_admin_emails_str = os.getenv("SUPER_ADMIN_EMAILS")
+    if super_admin_emails_str:
+        super_admin_emails = [e.strip().lower() for e in super_admin_emails_str.split(',') if e.strip()]
+        user_email = user.email
+        if user_email and user_email.lower() in super_admin_emails:
+            return True
+
+    return False
 
 class UserRole(str, Enum):
     ADMIN = "admin"
@@ -39,7 +43,7 @@ class UserRoleInfo(BaseModel):
     updated_at: datetime
 
 class UserRoleCreate(BaseModel):
-    email: EmailStr
+    email: str
     role: UserRole = UserRole.USER
 
 async def get_user_role(email: str) -> UserRole:
@@ -57,7 +61,7 @@ async def get_user_role(email: str) -> UserRole:
         await conn.close()
 
 @router.get("/users", response_model=List[UserRoleInfo])
-async def list_users(user: AuthorizedUser) -> List[UserRoleInfo]:
+async def list_users(request: Request, user: ClerkUser = Depends(get_authorized_user)) -> List[UserRoleInfo]:
     """List all users and their roles (Super-Admin only)"""
     if not is_super_admin(user):
         raise HTTPException(status_code=403, detail="Forbidden: Requires Super-Admin access")
@@ -88,7 +92,7 @@ async def list_users(user: AuthorizedUser) -> List[UserRoleInfo]:
         await conn.close()
 
 @router.post("/users", response_model=UserRoleInfo)
-async def create_user_role(user_data: UserRoleCreate, user: AuthorizedUser) -> UserRoleInfo:
+async def create_user_role(request: Request, user_data: UserRoleCreate, user: ClerkUser = Depends(get_authorized_user)) -> UserRoleInfo:
     """Create a new user role assignment (Super-Admin only)"""
     if not is_super_admin(user):
         raise HTTPException(status_code=403, detail="Forbidden: Requires Super-Admin access")
@@ -128,8 +132,8 @@ async def create_user_role(user_data: UserRoleCreate, user: AuthorizedUser) -> U
     finally:
         await conn.close()
 
-@router.get("/current-user-role")
-async def get_current_user_role(user: AuthorizedUser) -> dict:
+@router.get("/me/role", response_model=dict)
+async def get_current_user_role(request: Request, user: ClerkUser = Depends(get_authorized_user)) -> dict:
     """Get current user's role"""
     role = await get_user_role(user.email)
     return {

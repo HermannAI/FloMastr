@@ -7,9 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Building } from 'lucide-react';
-import { ThemeToggle } from 'components/ThemeToggle';
-import { stackClientApp } from 'app/auth';
-import { useUser } from '@stackframe/react';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 // IMPORTANT: This page handles both authenticated redirects and unauthenticated users
 // It needs to work regardless of UserGuard wrapper
@@ -21,7 +19,7 @@ export default function TenantAuth() {
   const location = useLocation();
   
   // Use useUser instead of useUserGuardContext to handle both scenarios
-  const currentUser = useUser();
+  // const currentUser = useUser();
   
   // Get tenant context from localStorage (stored by tenant resolution flow)
   const [tenantContext, setTenantContext] = useState<{
@@ -31,11 +29,11 @@ export default function TenantAuth() {
 
   useEffect(() => {
     // If user is already authenticated, redirect them to their intended destination
-    if (currentUser) {
-      const nextUrl = searchParams.get('next') || `/${tenantContext.tenantSlug || 'dashboard'}/hitl-tasks`;
-      navigate(nextUrl, { replace: true });
-      return;
-    }
+    // if (currentUser) {
+    //   const nextUrl = searchParams.get('next') || `/${tenantContext.tenantSlug || 'dashboard'}/hitl-tasks`;
+    //   navigate(nextUrl, { replace: true });
+    //   return;
+    // }
     
     // Get tenant context from localStorage
     const storedTenantSlug = localStorage.getItem('tenant-slug');
@@ -50,16 +48,16 @@ export default function TenantAuth() {
       // If no tenant context, redirect back to login
       navigate('/login');
     }
-  }, [navigate, currentUser, searchParams, tenantContext.tenantSlug]);
+  }, [navigate, searchParams, tenantContext.tenantSlug]);
 
   // Don't render the form if user is already authenticated (they'll be redirected)
-  if (currentUser) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // if (currentUser) {
+  //   return (
+  //     <div className="min-h-screen bg-background flex items-center justify-center">
+  //       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  //     </div>
+  //   );
+  // }
 
   const handleSignIn = async () => {
     setLoading(true);
@@ -70,7 +68,7 @@ export default function TenantAuth() {
       const nextUrl = searchParams.get('next') || `/${tenantContext.tenantSlug}/hitl-tasks`;
       
       // Redirect to Stack Auth sign-in with return URL
-      window.location.href = `${stackClientApp.urls.signIn}?next=${encodeURIComponent(nextUrl)}`;
+      // window.location.href = `${stackClientApp.urls.signIn}?next=${encodeURIComponent(nextUrl)}`;
     } catch (err) {
       console.error('Sign-in redirect error:', err);
       setError('Failed to redirect to sign-in. Please try again.');
@@ -102,12 +100,12 @@ export default function TenantAuth() {
       const nextUrl = searchParams.get('next') || `/${tenantContext.tenantSlug}/hitl-tasks`;
       
       // Build Stack Auth sign-up URL with clientMetadata
-      const signUpUrl = new URL(stackClientApp.urls.signUp);
-      signUpUrl.searchParams.set('next', nextUrl);
-      signUpUrl.searchParams.set('clientMetadata', JSON.stringify(clientMetadata));
+      // const signUpUrl = new URL(stackClientApp.urls.signUp);
+      // signUpUrl.searchParams.set('next', nextUrl);
+      // signUpUrl.searchParams.set('clientMetadata', JSON.stringify(clientMetadata));
       
       // Redirect to Stack Auth sign-up with tenant context
-      window.location.href = signUpUrl.toString();
+      // window.location.href = signUpUrl.toString();
     } catch (err) {
       console.error('Sign-up redirect error:', err);
       setError('Failed to redirect to sign-up. Please try again.');

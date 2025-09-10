@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useUserGuardContext } from 'app/auth';
-import { LoginRedirect } from 'app/auth';
+// import { useUserGuardContext } from 'app/auth';
+// import { LoginRedirect } from 'app/auth';
 import brain from 'brain';
 import { mode, Mode } from 'app';
 
@@ -88,6 +88,6 @@ export const CustomLoginRedirect = () => {
     return <Navigate to={redirectPath} replace={true} />;
   }
   
-  // Fallback to default LoginRedirect
-  return <LoginRedirect />;
+  // Fallback to default login page
+  return <Navigate to="/login" replace={true} />;
 };

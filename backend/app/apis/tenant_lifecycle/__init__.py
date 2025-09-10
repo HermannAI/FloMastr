@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 import asyncpg
-import databutton as db
+import os
 from app.auth import AuthorizedUser
 
 # Import centralized database connection
@@ -46,7 +46,7 @@ class TenantStatus(BaseModel):
 
 def check_super_admin_access(user: AuthorizedUser):
     """Check if user has super admin access"""
-    super_admin_ids_str = db.secrets.get("SUPER_ADMIN_IDS")
+    super_admin_ids_str = os.getenv("SUPER_ADMIN_IDS")
     if not super_admin_ids_str:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

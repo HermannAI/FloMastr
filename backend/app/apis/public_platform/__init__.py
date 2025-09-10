@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-import databutton as db
+import os
 from datetime import datetime
 import asyncpg
 
@@ -26,7 +26,7 @@ async def get_preflight_check() -> PreflightSecretsResponse:
     
     # Check STACK_SECRET_SERVER_KEY
     try:
-        stack_secret = db.secrets.get("STACK_SECRET_SERVER_KEY")
+        stack_secret = os.getenv("STACK_SECRET_SERVER_KEY")
         if stack_secret and stack_secret.strip():
             secrets_status["stack_secret_server_key"] = "OK"
     except Exception:
@@ -34,7 +34,7 @@ async def get_preflight_check() -> PreflightSecretsResponse:
     
     # Check SUPER_ADMIN_IDS
     try:
-        super_admin_ids = db.secrets.get("SUPER_ADMIN_IDS")
+        super_admin_ids = os.getenv("SUPER_ADMIN_IDS")
         if super_admin_ids and super_admin_ids.strip():
             secrets_status["super_admin_ids"] = "OK"
     except Exception:
@@ -43,8 +43,8 @@ async def get_preflight_check() -> PreflightSecretsResponse:
     # Check database connection string
     try:
         # Try both dev and prod database URLs
-        db_url_dev = db.secrets.get("DATABASE_URL_DEV")
-        db_url_prod = db.secrets.get("DATABASE_URL_PROD")
+        db_url_dev = os.getenv("DATABASE_URL_DEV")
+        db_url_prod = os.getenv("DATABASE_URL_PROD")
         
         if (db_url_dev and db_url_dev.strip()) or (db_url_prod and db_url_prod.strip()):
             secrets_status["database_connection"] = "OK"

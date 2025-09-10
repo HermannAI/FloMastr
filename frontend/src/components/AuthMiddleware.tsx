@@ -1,10 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useLocation, Navigate } from 'react-router-dom';
-import { useUser } from '@stackframe/react';
+import { useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import brain from 'brain';
-import { mode, Mode } from 'app';
+import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
 
 // Auth Context Types
 interface AuthState {
@@ -37,17 +35,20 @@ const ROUTE_CONFIG: Record<string, RouteMetadata> = {
   // Public routes (no auth required)
   '/': {},
   '/login': {},
+  '/login/*': {}, // Allow all Clerk auth routes including MFA
   '/auth/redirect': {},
   '/auth/*': {},
   
-  // Protected routes (auth required)
+  // Admin routes (super admin only)
   '/admin-dashboard': { authRequired: true, requireSuperAdmin: true },
   '/admin-policies': { authRequired: true, requireSuperAdmin: true },
   '/admin-provisioning': { authRequired: true, requireSuperAdmin: true },
   '/admin-tenants': { authRequired: true, requireSuperAdmin: true },
   '/admin-users': { authRequired: true, requireSuperAdmin: true },
   '/admin-waba-templates': { authRequired: true, requireSuperAdmin: true },
-  '/context-builder': { authRequired: true },
+  
+  // Tenant routes (authenticated users)
+  '/dashboard': { authRequired: true },
   '/hitl-tasks': { authRequired: true },
   '/settings': { authRequired: true },
   '/task': { authRequired: true },
@@ -55,7 +56,11 @@ const ROUTE_CONFIG: Record<string, RouteMetadata> = {
   '/test-context-builder': { authRequired: true },
   '/test-mutation-page': { authRequired: true },
   '/workflow-install': { authRequired: true },
-  '/workflows': { authRequired: true }
+  '/workflows': { authRequired: true },
+  '/context-builder': { authRequired: true },
+  
+  // Tenant-prefixed routes (e.g., /whappstream/hitl-tasks)
+  '/*': { authRequired: true } // Catch-all for tenant-prefixed routes
 };
 
 // Create Auth Context
@@ -102,7 +107,8 @@ interface AuthProviderProps {
 
 // Auth Provider Component
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const stackUser = useUser();
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
+  const { isSignedIn } = useClerkAuth();
   
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -125,11 +131,19 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) return false;
     if (!superAdminCache.checked) return true;
     
+    // If cache shows false but we haven't actually called the API (due to previous bug),
+    // we should recheck to ensure we get the correct status
+    if (!superAdminCache.status && superAdminCache.checked) {
+      // Reset cache to force recheck
+      setSuperAdminCache({ status: false, checked: false, timestamp: 0 });
+      return true;
+    }
+    
     // Cache is valid for the entire session
     return false;
   };
 
-  // Check super admin status
+  // Check super admin status using Clerk user metadata or backend API
   const checkSuperAdminStatus = async (user: any): Promise<boolean> => {
     if (!user) return false;
     
@@ -139,18 +153,50 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      const response = await brain.check_super_admin();
-      const result = await response.json();
-      const isSuperAdmin = result.is_super_admin || false;
+      // Check if user has super admin metadata in Clerk
+      const isSuperAdmin = user?.publicMetadata?.isSuperAdmin === true || 
+                          user?.privateMetadata?.isSuperAdmin === true;
       
-      // Cache the result for the session
+      if (isSuperAdmin) {
+        setSuperAdminCache({
+          status: true,
+          checked: true,
+          timestamp: Date.now()
+        });
+        return true;
+      }
+
+      // Fallback: Check via backend API if not in metadata
+      console.log('Checking super admin status via tenant resolution API...');
+      
+      try {
+        const response = await fetch(`/api/routes/resolve-tenant?email=${encodeURIComponent(user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress)}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Tenant resolution API response:', data);
+          
+          const isSuperAdmin = data.is_super_admin || false;
+          
+          setSuperAdminCache({
+            status: isSuperAdmin,
+            checked: true,
+            timestamp: Date.now()
+          });
+          return isSuperAdmin;
+        } else {
+          console.error('Tenant resolution API failed:', response.status);
+        }
+      } catch (apiError) {
+        console.error('Error calling tenant resolution API:', apiError);
+      }
+      
+      // If API call fails, default to false
       setSuperAdminCache({
-        status: isSuperAdmin,
+        status: false,
         checked: true,
         timestamp: Date.now()
       });
-      
-      return isSuperAdmin;
+      return false;
     } catch (error) {
       console.error('Super admin check failed:', error);
       // In case of error, cache as false to prevent repeated calls
@@ -193,45 +239,60 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Refresh auth state
   const refreshAuth = async (): Promise<void> => {
-    if (!stackUser) {
+    if (!clerkLoaded) {
+      setAuthState(prev => ({ ...prev, isLoading: true }));
+      return;
+    }
+
+    try {
+      // Handle undefined isSignedIn (Clerk not fully loaded)
+      const isAuthenticated = isSignedIn === true;
+      const user = clerkUser;
+      
+      console.log('refreshAuth called:', {
+        isSignedIn,
+        isAuthenticated,
+        user: user ? { email: user.primaryEmailAddress?.emailAddress } : null
+      });
+      
+      let isSuperAdmin = false;
+      if (isAuthenticated && user && needsSuperAdminCheck(user)) {
+        isSuperAdmin = await checkSuperAdminStatus(user);
+      } else if (superAdminCache.checked) {
+        isSuperAdmin = superAdminCache.status;
+      }
+
+      setAuthState({
+        user,
+        isLoading: false,
+        isAuthenticated,
+        isSuperAdmin,
+        tenantAccess: {},
+        error: null
+      });
+    } catch (error) {
+      console.error('Auth refresh failed:', error);
       setAuthState({
         user: null,
         isLoading: false,
         isAuthenticated: false,
         isSuperAdmin: false,
         tenantAccess: {},
-        error: null
+        error: error instanceof Error ? error.message : 'Authentication failed'
       });
-      return;
-    }
-
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-
-    try {
-      const isSuperAdmin = await checkSuperAdminStatus(stackUser);
-      
-      setAuthState({
-        user: stackUser,
-        isLoading: false,
-        isAuthenticated: true,
-        isSuperAdmin,
-        tenantAccess: {}, // Will be populated as needed
-        error: null
-      });
-    } catch (error) {
-      console.error('Auth refresh failed:', error);
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Authentication failed'
-      }));
     }
   };
 
-  // Initialize auth state when user changes
+  // Initialize auth state when Clerk user changes
   useEffect(() => {
+    console.log('AuthProvider useEffect triggered:', {
+      clerkUser: clerkUser ? { email: clerkUser.primaryEmailAddress?.emailAddress } : null,
+      clerkLoaded,
+      isSignedIn,
+      isSignedInType: typeof isSignedIn
+    });
     refreshAuth();
-  }, [stackUser]);
+  }, [clerkUser, clerkLoaded, isSignedIn]);
 
   const contextValue: AuthContextValue = {
     ...authState,
@@ -252,8 +313,142 @@ interface RouteProtectionProps {
 }
 
 const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
-  const { isLoading, isAuthenticated, isSuperAdmin, error } = useAuth();
+  const { isLoading, isAuthenticated, isSuperAdmin, error, user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handlePostLoginRedirect = async () => {
+    try {
+      console.log('Starting post-login redirect. isSuperAdmin:', isSuperAdmin);
+
+      // First check super admin status directly via API to ensure we have the latest status
+      let isUserSuperAdmin = isSuperAdmin;
+      if (user?.primaryEmailAddress?.emailAddress) {
+        try {
+          const email = user.primaryEmailAddress.emailAddress;
+          console.log('Checking super admin status for email:', email);
+          
+          const response = await fetch(`/api/routes/resolve-tenant?email=${encodeURIComponent(email)}`);
+          if (response.ok) {
+            const data = await response.json();
+            isUserSuperAdmin = data.is_super_admin || false;
+            console.log('Direct super admin check result:', isUserSuperAdmin);
+            
+            // Update the auth state if needed
+            if (isUserSuperAdmin !== isSuperAdmin) {
+              console.log('Updating auth state with correct super admin status');
+              // Note: We can't directly update the auth state here, but the AuthProvider should handle this
+            }
+          }
+        } catch (error) {
+          console.error('Error checking super admin status:', error);
+        }
+      }
+
+      // Check if user is super admin
+      if (isUserSuperAdmin) {
+        // Check if we're in development environment
+        const isDevelopment = import.meta.env.DEV || 
+                             window.location.hostname === 'localhost' || 
+                             window.location.hostname === '127.0.0.1';
+        
+        if (isDevelopment) {
+          console.log('User is super admin in development, redirecting to local admin dashboard');
+          // Redirect super admins to local admin dashboard in development
+          navigate('/admin-dashboard', { replace: true });
+        } else {
+          console.log('User is super admin in production, redirecting to production admin dashboard');
+          // Redirect super admins to production admin dashboard
+          window.location.href = 'https://app.flomastr.com';
+        }
+        return;
+      }
+
+      console.log('User is not super admin, resolving tenant...');
+      // For regular users, try to resolve tenant
+      const tenantSlug = await resolveUserTenant();
+      console.log('Resolved tenant slug:', tenantSlug);
+
+      if (tenantSlug) {
+        // Redirect to tenant-specific dashboard
+        const tenantPath = `/${tenantSlug}/hitl-tasks`;
+        console.log('Redirecting to tenant path:', tenantPath);
+        navigate(tenantPath, { replace: true });
+      } else {
+        // No tenant found, redirect to general dashboard
+        const nextPath = localStorage.getItem('dtbn-login-next') || '/dashboard';
+        localStorage.removeItem('dtbn-login-next');
+        console.log('No tenant found, redirecting to:', nextPath);
+        navigate(nextPath, { replace: true });
+      }
+    } catch (error) {
+      console.error('Error during post-login redirect:', error);
+      // Fallback to dashboard
+      navigate('/dashboard', { replace: true });
+    }
+  };
+
+  const resolveUserTenant = async (): Promise<string | null> => {
+    try {
+      // Use the user from component scope instead of calling useAuth hook
+      if (!user?.primaryEmailAddress?.emailAddress) {
+        console.log('No user email found for tenant resolution');
+        return null;
+      }
+
+      const email = user.primaryEmailAddress.emailAddress;
+      console.log('Resolving tenant for email:', email);
+
+      // Call tenant resolution API with correct endpoint
+      const apiUrl = `/api/routes/resolve-tenant?email=${encodeURIComponent(email)}`;
+      console.log('Calling tenant resolution API:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Tenant resolution response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Tenant resolution data:', data);
+        const tenantSlug = data.tenant_slug || null;
+        console.log('Resolved tenant slug:', tenantSlug);
+        return tenantSlug;
+      } else {
+        console.log('Tenant resolution failed with status:', response.status);
+        const errorText = await response.text();
+        console.log('Error response:', errorText);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error resolving tenant:', error);
+      return null;
+    }
+  };
+
+  // Handle post-login redirects based on user role
+  useEffect(() => {
+    console.log('AuthMiddleware useEffect triggered:', {
+      pathname: location.pathname,
+      isAuthenticated,
+      isLoading,
+      isSuperAdmin,
+      user: user ? { email: user.primaryEmailAddress?.emailAddress } : null,
+      isOnClerkRoute: location.pathname.startsWith('/login/') || location.pathname.startsWith('/sign-in/') || location.pathname.startsWith('/sign-up/')
+    });
+
+    // Only trigger redirect if we're on the auth redirect page and fully authenticated
+    if (location.pathname === '/auth/redirect' && isAuthenticated && !isLoading && user) {
+      console.log('Triggering post-login redirect for authenticated user');
+      handlePostLoginRedirect();
+    } else if (location.pathname === '/auth/redirect') {
+      console.log('On auth redirect but not ready for redirect:', { isAuthenticated, isLoading, hasUser: !!user });
+    }
+  }, [location.pathname, isAuthenticated, isLoading, isSuperAdmin, user]);
 
   // Get route metadata from configuration
   const getRouteMetadata = (): RouteMetadata | null => {
@@ -271,6 +466,18 @@ const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
         if (path.startsWith(basePath)) {
           return ROUTE_CONFIG[configPath];
         }
+      }
+    }
+    
+    // Check for tenant-prefixed routes (e.g., /whappstream/hitl-tasks)
+    const pathParts = path.split('/').filter(Boolean);
+    if (pathParts.length >= 2) {
+      const potentialTenantSlug = pathParts[0];
+      const routePath = '/' + pathParts.slice(1).join('/');
+      
+      // If the second part matches a known route, treat it as a tenant route
+      if (ROUTE_CONFIG[routePath]) {
+        return ROUTE_CONFIG[routePath];
       }
     }
     
@@ -300,10 +507,30 @@ const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
     return <>{children}</>;
   }
 
+  // Handle authenticated users on auth routes FIRST - before any other checks
+  if (isAuthenticated && !isLoading && (location.pathname === '/login' || location.pathname.startsWith('/login/'))) {
+    console.log('Authenticated user on login route, redirecting to dashboard');
+    // Trigger post-login redirect logic
+    handlePostLoginRedirect();
+    // Return loading state while redirect happens
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+      </div>
+    );
+  }
+
   // Check authentication requirement
   if (routeMetadata.authRequired && !isAuthenticated) {
+    // Don't redirect if user is on Clerk auth routes (including MFA)
+    if (location.pathname.startsWith('/login/') || location.pathname.startsWith('/sign-in/') || location.pathname.startsWith('/sign-up/')) {
+      console.log('Allowing access to Clerk auth route:', location.pathname);
+      return <>{children}</>;
+    }
+
     // Store current path for redirect after login
     localStorage.setItem('dtbn-login-next', location.pathname + location.search);
+    console.log('Redirecting to login from:', location.pathname);
     return <Navigate to="/login" replace />;
   }
 

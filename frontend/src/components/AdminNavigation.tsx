@@ -3,9 +3,9 @@
 
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { useClerk, useUser } from '@clerk/clerk-react';
 import { 
   Users, 
   Settings, 
@@ -20,16 +20,8 @@ import {
   ToggleLeft,
   LogOut
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useAuthenticatedUser } from 'components/AuthMiddleware';
-import { stackClientApp } from 'app/auth';
+import { useAuthenticatedUser } from './AuthMiddleware';
+// import { stackClientApp } from 'app/auth';
 
 interface AdminNavigationProps {
   currentMode?: 'admin' | 'tenant';
@@ -37,9 +29,13 @@ interface AdminNavigationProps {
 }
 
 export const AdminNavigation = ({ currentMode = 'admin', onModeSwitch }: AdminNavigationProps) => {
-  const { user } = useAuthenticatedUser(); // Use consolidated auth context
+  const { user: clerkUser } = useUser(); // Get user directly from Clerk
   const navigate = useNavigate();
+  const { signOut } = useClerk();
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  // Use Clerk user directly
+  const user = clerkUser;
 
   const toggleSection = (sectionId: string) => {
     setCollapsedSections(prev => ({
@@ -50,8 +46,9 @@ export const AdminNavigation = ({ currentMode = 'admin', onModeSwitch }: AdminNa
 
   const handleSignOut = async () => {
     try {
-      await stackClientApp.signOut();
-      navigate('/auth/sign-in');
+      // Use Clerk's sign out functionality
+      await signOut();
+      navigate('/');
     } catch (error) {
       console.error('Sign out error:', error);
     }
@@ -100,40 +97,15 @@ export const AdminNavigation = ({ currentMode = 'admin', onModeSwitch }: AdminNa
         </div>
         
         {/* Mode Switcher */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full justify-between">
-              <div className="flex items-center gap-2">
-                <ToggleLeft className="h-4 w-4" />
-                <span>{currentMode === 'admin' ? 'Admin Mode' : 'Tenant Mode'}</span>
-              </div>
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuLabel>Navigation Mode</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={() => onModeSwitch?.('admin')}
-              className={currentMode === 'admin' ? 'bg-accent' : ''}
-            >
-              <Shield className="h-4 w-4 mr-2" />
-              Admin Mode
-              {currentMode === 'admin' && <Badge variant="secondary" className="ml-auto">Active</Badge>}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => onModeSwitch?.('tenant')}
-              className={currentMode === 'tenant' ? 'bg-accent' : ''}
-            >
-              <Building2 className="h-4 w-4 mr-2" />
-              Tenant Mode
-              {currentMode === 'tenant' && <Badge variant="secondary" className="ml-auto">Active</Badge>}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button variant="outline" className="w-full justify-center">
+          <div className="flex items-center gap-2">
+            <ToggleLeft className="h-4 w-4" />
+            <span>{currentMode === 'admin' ? 'Admin Mode' : 'Tenant Mode'}</span>
+          </div>
+        </Button>
       </div>
       
-      <Separator />
+      <div className="border-t border-gray-200 my-4" />
       
       {/* Navigation Sections */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -182,19 +154,50 @@ export const AdminNavigation = ({ currentMode = 'admin', onModeSwitch }: AdminNa
         })}
       </nav>
       
-      <Separator />
+      <div className="border-t border-gray-200 my-4" />
       
       {/* User Info & Sign Out */}
       <div className="p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-            <Users className="h-4 w-4 text-gray-600" />
+          <div className="w-8 h-8 bg-primary/10 border border-border rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {(() => {
+              // Use correct Clerk properties
+              let profileUrl = null;
+              if (user?.hasImage && user?.imageUrl) {
+                profileUrl = user.imageUrl;
+              }
+              
+              return profileUrl ? (
+                <img
+                  src={profileUrl}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('AdminNavigation profile picture failed to load:', profileUrl);
+                    // Fallback to user icon if image fails to load
+                    const container = e.currentTarget.parentElement;
+                    if (container) {
+                      container.innerHTML = '<svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>';
+                    }
+                  }}
+                />
+              ) : (
+                <Users className="h-4 w-4 text-primary" />
+              );
+            })()}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-100 truncate">
-              {user.primaryEmail || user.email || 'Admin User'}
+              {user?.firstName && user?.lastName 
+                ? `${user.firstName} ${user.lastName}` 
+                : user?.firstName || user?.lastName || 'Admin User'}
             </p>
-            <p className="text-xs text-gray-300">Super Administrator</p>
+            <p className="text-xs text-gray-300 truncate">
+              {user?.primaryEmailAddress?.emailAddress || 
+               user?.emailAddresses?.[0]?.emailAddress || 
+               'admin@changemastr.com'}
+            </p>
+            <p className="text-xs text-primary font-medium">Super Administrator</p>
           </div>
         </div>
         

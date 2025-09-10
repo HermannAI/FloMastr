@@ -2,50 +2,49 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogDescription,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+// } from '../components/ui/dialog';
+// import {
+//   AlertDialog,
+//   AlertDialogAction,
+//   AlertDialogCancel,
+//   AlertDialogContent,
+//   AlertDialogDescription,
+//   AlertDialogFooter,
+//   AlertDialogHeader,
+//   AlertDialogTitle,
+// } from '../components/ui/alert-dialog';
+// import {
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableHeader,
+//   TableRow,
+// } from '../components/ui/table';
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+// } from '../components/ui/select';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Shield, User, Crown, Trash2, Users } from 'lucide-react';
-import brain from 'brain';
-import { AdminLayout } from 'components/AdminLayout';
-
-type UserRole = 'user' | 'admin' | 'super_admin';
+import { Plus, Shield, User, Crown, Users } from 'lucide-react';
+import brain, { UserRole } from '../brain';
+import { AdminLayout } from '../components/AdminLayout';
+import { useSuperAdmin } from '../components/AuthMiddleware';
 
 interface UserRoleInfo {
   id: string;
@@ -64,18 +63,27 @@ interface NewUserData {
 
 const AdminUsers = () => {
   const queryClient = useQueryClient();
+  const { isSuperAdmin, isLoading: authLoading } = useSuperAdmin();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newUserData, setNewUserData] = useState<NewUserData>({ email: '', role: 'user' });
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
-  // Fetch users query
+  // Fetch users query - only if user is confirmed super admin
   const { data: users = [], isLoading, error } = useQuery<UserRoleInfo[]>({
     queryKey: ['admin-users'],
     queryFn: async () => {
       const response = await brain.list_users();
       return await response.json();
     },
-    retry: 1
+    retry: (failureCount, error: any) => {
+      console.log('AdminUsers: Query failed', failureCount, error);
+      // Don't retry on 403/401 errors (authentication/authorization issues)
+      if (error?.status === 403 || error?.status === 401) {
+        return false;
+      }
+      return failureCount < 1;
+    },
+    enabled: isSuperAdmin && !authLoading, // Only run if user is super admin
   });
 
   // Create user mutation
@@ -92,39 +100,6 @@ const AdminUsers = () => {
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to create user role');
-    },
-  });
-
-  // Update user mutation
-  const updateUserMutation = useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: UserRole }) => {
-      const response = await brain.update_user_role(
-        { userEmail: email },
-        { role }
-      );
-      return await response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      toast.success('User role updated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to update user role');
-    },
-  });
-
-  // Delete user mutation
-  const deleteUserMutation = useMutation({
-    mutationFn: async (email: string) => {
-      await brain.delete_user_role({ userEmail: email });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      toast.success('User role deleted successfully');
-      setUserToDelete(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to delete user role');
     },
   });
 
@@ -158,17 +133,42 @@ const AdminUsers = () => {
     createUserMutation.mutate(newUserData);
   };
 
-  const handleDeleteUser = (email: string) => {
-    deleteUserMutation.mutate(email);
-  };
+  // Show loading while authentication is being determined
+  if (authLoading) {
+    return (
+      <AdminLayout>
+        <div className="p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2">Loading...</span>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
-  if (error) {
+  // Show access denied only if user is not a super admin
+  if (!isSuperAdmin) {
     return (
       <AdminLayout>
         <div className="p-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
             <p className="text-muted-foreground">You don't have permission to view this page.</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  // Show error only for actual API errors when user is authenticated as super admin
+  if (error && isSuperAdmin) {
+    return (
+      <AdminLayout>
+        <div className="p-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Users</h1>
+            <p className="text-muted-foreground">Failed to load user data. Please try again.</p>
           </div>
         </div>
       </AdminLayout>
@@ -187,65 +187,64 @@ const AdminUsers = () => {
             </div>
           </div>
           
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add User Role
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add User Role</DialogTitle>
-                <DialogDescription>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add User Role
+          </Button>
+
+          {/* Add User Modal */}
+          {isAddDialogOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+                <h3 className="text-lg font-semibold mb-4">Add User Role</h3>
+                <p className="text-sm text-gray-600 mb-4">
                   Assign a role to a user. The user will be created if they don't exist.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="user@example.com"
-                    value={newUserData.email}
-                    onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
-                  />
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="user@example.com"
+                      value={newUserData.email}
+                      onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="role">Role</Label>
+                    <select
+                      id="role"
+                      value={newUserData.role}
+                      onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value as UserRole })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select a role</option>
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                      <option value="super_admin">Super Admin</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select
-                    value={newUserData.role}
-                    onValueChange={(value: UserRole) => setNewUserData({ ...newUserData, role: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="super_admin">Super Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex justify-end space-x-2 mt-6">
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
+                    {createUserMutation.isPending ? 'Creating...' : 'Create'}
+                  </Button>
                 </div>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateUser} disabled={createUserMutation.isLoading}>
-                  {createUserMutation.isLoading ? 'Creating...' : 'Create'}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+            </div>
+          )}
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>User Roles</CardTitle>
             <CardDescription>
-              Manage user permissions and access levels across the platform.
+              View and manage user permissions. You can add new user roles, but updates and deletions must be done through the backend API.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -254,93 +253,51 @@ const AdminUsers = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Assigned By</TableHead>
-                    <TableHead>Assigned At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border border-gray-300 px-4 py-2 text-left">User</th>
+                    <th className="border border-gray-300 px-4 py-2 text-left">Role</th>
+                    <th className="border border-gray-300 px-4 py-2 text-left">Assigned By</th>
+                    <th className="border border-gray-300 px-4 py-2 text-left">Assigned At</th>
+                    <th className="border border-gray-300 px-4 py-2 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="border border-gray-300 px-4 py-2">
                         <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                             {getRoleIcon(user.role)}
                           </div>
                           <span className="font-medium">{user.email}</span>
                         </div>
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2">
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {user.role.replace('_', ' ').toUpperCase()}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-gray-600">
                         {user.assigned_by || 'System'}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-gray-600">
                         {new Date(user.assigned_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <Select
-                            value={user.role}
-                            onValueChange={(value: UserRole) => {
-                              updateUserMutation.mutate({ email: user.email, role: value });
-                            }}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="user">User</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="super_admin">Super Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setUserToDelete(user.email)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {/* Actions disabled - only create and list operations are supported */}
+                          <span className="text-sm text-gray-500">View only</span>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             )}
           </CardContent>
         </Card>
-
-        {/* Delete confirmation dialog */}
-        <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the user role for{' '}
-                <strong>{userToDelete}</strong>.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => userToDelete && handleDeleteUser(userToDelete)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </AdminLayout>
   );

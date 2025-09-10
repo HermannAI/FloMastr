@@ -1,6 +1,6 @@
 
 import requests
-import databutton as db
+import os
 from typing import Optional
 from pydantic import BaseModel
 from app.auth import AuthorizedUser
@@ -19,7 +19,7 @@ class StackAuthHelper:
     
     def __init__(self):
         self.project_id = "34204b2d-cb69-4af7-b557-fd752531f1c3"  # From JWT issuer
-        self.secret_key = db.secrets.get("STACK_SECRET_SERVER_KEY")
+        self.secret_key = os.getenv("STACK_SECRET_SERVER_KEY")
         if not self.secret_key:
             raise ValueError("STACK_SECRET_SERVER_KEY not configured")
     
@@ -66,7 +66,7 @@ class StackAuthHelper:
     def is_super_admin_by_user_id(self, user_id: str) -> bool:
         """Check if user is super admin by user ID (fallback)"""
         try:
-            super_admin_ids = db.secrets.get("SUPER_ADMIN_IDS")
+            super_admin_ids = os.getenv("SUPER_ADMIN_IDS")
             if super_admin_ids and user_id in super_admin_ids.split(","):
                 return True
         except Exception:

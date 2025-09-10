@@ -1,11 +1,11 @@
 
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TenantProvider } from "utils/TenantProvider";
-import { AuthMiddleware } from "components/AuthMiddleware";
-import { APP_BASE_PATH } from "app";
+import { TenantProvider } from "../utils/TenantProvider";
+import { AuthMiddleware } from "./AuthMiddleware";
+import { APP_BASE_PATH } from "../app";
 import { useLocation, Navigate } from "react-router-dom";
-import { StackHandlerRoutes, LoginRedirect } from "app/auth";
+// import { StackHandlerRoutes, LoginRedirect } from "../app/auth";
 
 interface AppProviderProps {
   children: React.ReactNode;
@@ -61,7 +61,7 @@ function AuthRouteHandler({ children }: { children: React.ReactNode }) {
     }
     
     // Fall back to default LoginRedirect for non-tenant users
-    return <LoginRedirect />;
+    // return <LoginRedirect />;
   }
 
   // Handle tenant-prefixed auth routes like /whappstream/auth/sign-in
@@ -70,12 +70,12 @@ function AuthRouteHandler({ children }: { children: React.ReactNode }) {
     const [, tenantSlug] = tenantAuthMatch;
     // Store tenant slug for context and render Stack Auth
     localStorage.setItem('tenant-slug', tenantSlug);
-    return <StackHandlerRoutes />;
+    // return <StackHandlerRoutes />;
   }
   
   // Handle regular auth routes (missing from auto-generated router)
   if (location.pathname.startsWith('/auth/')) {
-    return <StackHandlerRoutes />;
+    // return <StackHandlerRoutes />;
   }
   
   return <>{children}</>;

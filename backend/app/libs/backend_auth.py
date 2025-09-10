@@ -4,7 +4,7 @@
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import databutton as db
+import os
 
 bearer_scheme = HTTPBearer()
 
@@ -12,7 +12,7 @@ def require_backend_token(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
     # --- START DIAGNOSTIC LOGGING ---
-    server_secret = db.secrets.get("BACKEND_API_SECRET_TOKEN")
+    server_secret = os.getenv("BACKEND_API_SECRET_TOKEN")
     incoming_token = credentials.credentials
 
     print("--- AUTH_DEBUG: STARTING AUTHENTICATION CHECK ---")

@@ -4,20 +4,32 @@ import { OuterErrorBoundary } from "./prod-components/OuterErrorBoundary";
 import { router } from "./router";
 import { ThemeProvider } from "./internal-components/ThemeProvider";
 import { DEFAULT_THEME } from "./constants/default-theme";
-import { StackHandler, StackProvider, StackTheme } from "@stackframe/react";
-import { stackClientApp } from "app/auth";
+import { ClerkProvider } from "@clerk/clerk-react";
+
+// Get the Clerk Publishable Key from the environment variables
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error("Missing Clerk Publishable Key");
+}
 
 export const AppWrapper = () => {
   return (
     <OuterErrorBoundary>
-      <StackProvider app={stackClientApp}>
-      <StackTheme>
-      <ThemeProvider defaultTheme={DEFAULT_THEME}>
-        <RouterProvider router={router} />
-        <Head />
-      </ThemeProvider>
-      </StackTheme>
-      </StackProvider>
+      <ClerkProvider 
+        publishableKey={PUBLISHABLE_KEY}
+        appearance={{
+          baseTheme: undefined, // Use system theme
+        }}
+        // Allow Clerk to handle its own routing for auth flows
+        routerPush={(to) => window.history.pushState(null, '', to)}
+        routerReplace={(to) => window.history.replaceState(null, '', to)}
+      >
+        <ThemeProvider defaultTheme={DEFAULT_THEME}>
+          <RouterProvider router={router} />
+          <Head />
+        </ThemeProvider>
+      </ClerkProvider>
     </OuterErrorBoundary>
   );
 };

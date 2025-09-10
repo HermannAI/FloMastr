@@ -1,14 +1,13 @@
 
 
 import React, { useState, useEffect } from "react";
-import { Layout } from "components/Layout";
-import { useUser } from "@stackframe/react";
+import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Workflow as WorkflowIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { WorkflowCard } from "components/WorkflowCard";
-import { FilterBar } from "components/FilterBar";
+import { WorkflowCard } from "@/components/WorkflowCard";
+import { FilterBar } from "@/components/FilterBar";
 import brain from "brain";
 import { WorkflowResponse } from "types";
 
@@ -18,7 +17,6 @@ interface WorkflowsData {
 }
 
 export default function Workflows() {
-  const user = useUser();
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState<WorkflowResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,19 +91,6 @@ export default function Workflows() {
     setSelectedTags([]);
     setSortBy("name");
   };
-
-  if (!user) {
-    return (
-      <Layout showNavigation={false}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Please sign in to view workflows</h2>
-            <Button onClick={() => navigate('/auth/sign-in')}>Sign In</Button>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>

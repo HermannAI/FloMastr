@@ -5,7 +5,6 @@ from typing import Dict, Any
 from datetime import datetime
 import json
 import asyncpg
-import databutton as db
 
 # Import centralized database connection
 from app.libs.db_connection import get_db_connection

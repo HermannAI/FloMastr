@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+// import { Separator } from "../components/ui/separator";
 import { Settings, Lock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { AdminLayout } from "components/AdminLayout";
+import { AdminLayout } from "../components/AdminLayout";
 
 interface PolicyConfig {
   confidence_default: number;
@@ -20,7 +20,7 @@ const AdminPolicies = () => {
   const [policies, setPolicies] = useState<PolicyConfig>({
     confidence_default: 0.75,
     hot_ttl_days: 30,
-    inbox_scope: "databutton"
+    inbox_scope: "flomastr"
   });
 
   const handleSavePolicies = () => {
@@ -44,7 +44,7 @@ const AdminPolicies = () => {
   ];
 
   const scopeOptions = [
-    { value: "databutton", label: "Databutton", description: "Default scope for Databutton platform" },
+    { value: "flomastr", label: "FloMastr", description: "Default scope for FloMastr platform" },
     { value: "tenant", label: "Tenant", description: "Tenant-specific inbox scope" },
     { value: "global", label: "Global", description: "Global inbox access" }
   ];
@@ -84,24 +84,18 @@ const AdminPolicies = () => {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="confidence">Default Confidence Threshold</Label>
-              <Select 
-                value={policies.confidence_default.toString()} 
-                onValueChange={(value) => setPolicies(prev => ({ ...prev, confidence_default: parseFloat(value) }))}
+              <select
+                id="confidence"
+                value={policies.confidence_default.toString()}
+                onChange={(e) => setPolicies(prev => ({ ...prev, confidence_default: parseFloat(e.target.value) }))}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select confidence threshold" />
-                </SelectTrigger>
-                <SelectContent>
-                  {confidenceOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {confidenceOptions.map((option) => (
+                  <option key={option.value} value={option.value.toString()}>
+                    {option.label} - {option.description}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div className="text-xs text-muted-foreground">
@@ -110,7 +104,7 @@ const AdminPolicies = () => {
           </CardContent>
         </Card>
 
-        <Separator />
+        <hr className="my-6 border-gray-200" />
 
         <Card>
           <CardHeader>
@@ -125,24 +119,18 @@ const AdminPolicies = () => {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="ttl">Hot TTL Days</Label>
-              <Select 
-                value={policies.hot_ttl_days.toString()} 
-                onValueChange={(value) => setPolicies(prev => ({ ...prev, hot_ttl_days: parseInt(value) }))}
+              <select
+                id="ttl"
+                value={policies.hot_ttl_days.toString()}
+                onChange={(e) => setPolicies(prev => ({ ...prev, hot_ttl_days: parseInt(e.target.value) }))}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select TTL period" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ttlOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {ttlOptions.map((option) => (
+                  <option key={option.value} value={option.value.toString()}>
+                    {option.label} - {option.description}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div className="text-xs text-muted-foreground">
@@ -151,7 +139,7 @@ const AdminPolicies = () => {
           </CardContent>
         </Card>
 
-        <Separator />
+        <hr className="my-6 border-gray-200" />
 
         <Card>
           <CardHeader>
@@ -166,24 +154,18 @@ const AdminPolicies = () => {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="scope">Default Inbox Scope</Label>
-              <Select 
-                value={policies.inbox_scope} 
-                onValueChange={(value) => setPolicies(prev => ({ ...prev, inbox_scope: value }))}
+              <select
+                id="scope"
+                value={policies.inbox_scope}
+                onChange={(e) => setPolicies(prev => ({ ...prev, inbox_scope: e.target.value }))}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select inbox scope" />
-                </SelectTrigger>
-                <SelectContent>
-                  {scopeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {scopeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} - {option.description}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div className="text-xs text-muted-foreground">

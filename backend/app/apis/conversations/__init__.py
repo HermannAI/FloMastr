@@ -1,7 +1,7 @@
 
 
 
-import databutton as db
+import os
 import json
 from fastapi import APIRouter, HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -21,7 +21,7 @@ security = HTTPBearer()
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     # Use the standardized backend API secret token
-    backend_api_secret = db.secrets.get("BACKEND_API_SECRET_TOKEN")
+    backend_api_secret = os.getenv("BACKEND_API_SECRET_TOKEN")
     
     if not credentials or credentials.scheme != "Bearer" or credentials.credentials != backend_api_secret:
         raise HTTPException(

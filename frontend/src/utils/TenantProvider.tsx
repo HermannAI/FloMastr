@@ -3,8 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useUser } from '@stackframe/react';
-import brain from 'brain';
+import brain from '../brain';
 
 interface TenantInfo {
   id: number;
@@ -48,7 +47,7 @@ interface TenantProviderProps {
  */
 const extractTenantSlugFromHostname = (hostname: string): string | null => {
   // Handle localhost and development environments
-  if (hostname.includes('localhost') || hostname.includes('databutton.com')) {
+  if (hostname.includes('localhost') || hostname.includes('flomastr.com')) {
     return null;
   }
   
@@ -93,7 +92,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [isValidTenant, setIsValidTenant] = useState(false);
   const location = useLocation();
-  const user = useUser();
+  // const user = useUser();
 
   useEffect(() => {
     const resolveTenant = async () => {
@@ -133,38 +132,38 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
           }
         } else {
           // No tenant slug in hostname - try to resolve by user email if logged in
-          if (user?.primaryEmail) {
-            try {
-              const response = await brain.resolve_tenant({ email: user.primaryEmail });
-              const resolveData = await response.json();
-              
-              if (resolveData.found && resolveData.tenant_slug) {
-                // Get full tenant details
-                const tenantResponse = await brain.get_tenant_by_slug({ tenantSlug: resolveData.tenant_slug });
-                const tenantData = await tenantResponse.json();
-                
-                setTenant(tenantData);
-                setTenantSlug(resolveData.tenant_slug);
-                setIsValidTenant(true);
-              } else {
-                // User has no associated tenant - use fallback
-                setTenant(null);
-                setTenantSlug(null);
-                setIsValidTenant(false);
-              }
-            } catch (resolveError) {
-              console.warn('Failed to resolve tenant by email:', resolveError);
-              // Don't set error for unresolved email - just use fallback
-              setTenant(null);
-              setTenantSlug(null);
-              setIsValidTenant(false);
-            }
-          } else {
+          // if (user?.primaryEmail) {
+          //   try {
+          //     const response = await brain.resolve_tenant({ email: user.primaryEmail });
+          //     const resolveData = await response.json();
+          //     
+          //     if (resolveData.found && resolveData.tenant_slug) {
+          //       // Get full tenant details
+          //       const tenantResponse = await brain.get_tenant_by_slug({ tenantSlug: resolveData.tenant_slug });
+          //       const tenantData = await tenantResponse.json();
+          //       
+          //       setTenant(tenantData);
+          //       setTenantSlug(resolveData.tenant_slug);
+          //       setIsValidTenant(true);
+          //     } else {
+          //       // User has no associated tenant - use fallback
+          //       setTenant(null);
+          //       setTenantSlug(null);
+          //       setIsValidTenant(false);
+          //     }
+          //   } catch (resolveError) {
+          //     console.warn('Failed to resolve tenant by email:', resolveError);
+          //     // Don't set error for unresolved email - just use fallback
+          //     setTenant(null);
+          //     setTenantSlug(null);
+          //     setIsValidTenant(false);
+          //   }
+          // } else {
             // No user logged in or no email - no tenant context needed
             setTenant(null);
             setTenantSlug(null);
             setIsValidTenant(false);
-          }
+          // }
         }
       } catch (error: any) {
         console.error('Error resolving tenant:', error);
@@ -176,7 +175,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
     };
 
     resolveTenant();
-  }, [location.pathname, user?.primaryEmail]); // Note: keeping location.pathname for auth page detection
+  }, [location.pathname]); // Note: keeping location.pathname for auth page detection
 
   const contextValue: TenantContextType = {
     tenant,

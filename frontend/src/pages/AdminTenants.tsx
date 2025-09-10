@@ -3,54 +3,23 @@
 
 
 import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { AdminLayout } from "components/AdminLayout";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+
+// All UI component imports are commented out as they don't exist
+// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+// import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
+// import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
+// import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+// import { Textarea } from "../components/ui/textarea";
+
+// Available UI components
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { AdminLayout } from "../components/AdminLayout";
 import { Edit, Save, X, MoreHorizontal, Ban, RotateCcw, Archive, Trash2, AlertTriangle } from "lucide-react";
-import brain from "brain";
+import brain from "../brain";
 import { toast } from "sonner";
 import { TenantProfileRequest, CompanySize, Industry } from "types";
 
@@ -94,16 +63,33 @@ interface Tenant {
   id: number;
   slug: string;
   name: string;
+  n8n_url?: string | null;
   status: string;
-  confidence_threshold: string;
-  hot_ttl_days: number;
-  inbox_scope: string;
-  catalog_enabled: boolean;
-  n8n_url: string | null;
-  cold_db_ref: string | null;
+  branding_settings?: Record<string, any>;
+  confidence_threshold?: string;
+  hot_ttl_days?: number;
+  inbox_scope?: string;
+  catalog_enabled?: boolean;
+  cold_db_ref?: string | null;
   created_at: string;
   updated_at: string;
-  deleted_at?: string | null; // Add deleted_at field
+  deleted_at?: string | null;
+  company_name?: string | null;
+  industry?: string | null;
+  company_address?: string | null;
+  website_url?: string | null;
+  company_size?: string | null;
+  time_zone?: string | null;
+  primary_contact_name?: string | null;
+  primary_contact_title?: string | null;
+  primary_contact_email?: string | null;
+  primary_contact_phone?: string | null;
+  primary_contact_whatsapp?: string | null;
+  billing_contact_name?: string | null;
+  billing_contact_email?: string | null;
+  technical_contact_name?: string | null;
+  technical_contact_email?: string | null;
+  custom_domain?: string | null;
 }
 
 type LifecycleAction = 'suspend' | 'reactivate' | 'soft_delete' | 'restore' | 'hard_delete';
@@ -154,48 +140,45 @@ const AdminTenants = () => {
   const openEditModal = async (tenant: Tenant) => {
     setEditingTenant(tenant);
     try {
-      // Fetch full tenant profile
-      const response = await brain.get_tenant_profile({ tenantId: tenant.slug });
-      const profile = await response.json();
-      
+      // Use tenant data directly (most profile fields are already in the Tenant object)
       setEditFormData({
         // Tenant Configuration
         cold_db_ref: tenant.cold_db_ref,
-        
+
         // Company Information
-        company_name: profile.company_name,
-        industry: profile.industry,
-        company_address: profile.company_address,
-        website_url: profile.website_url,
-        company_size: profile.company_size,
-        time_zone: profile.time_zone,
-        custom_domain: profile.custom_domain,
-        
-        // Branding
-        brand_primary: profile.brand_primary,
-        logo_svg: profile.logo_svg,
-        
+        company_name: tenant.company_name,
+        industry: tenant.industry,
+        company_address: tenant.company_address,
+        website_url: tenant.website_url,
+        company_size: tenant.company_size as CompanySize | undefined,
+        time_zone: tenant.time_zone,
+        custom_domain: tenant.custom_domain,
+
+        // Branding (from branding_settings if available)
+        brand_primary: tenant.branding_settings?.brand_primary || '#0052cc',
+        logo_svg: tenant.branding_settings?.logo_svg,
+
         // Contact Information
-        primary_contact_name: profile.primary_contact_name,
-        primary_contact_title: profile.primary_contact_title,
-        primary_contact_email: profile.primary_contact_email,
-        primary_contact_phone: profile.primary_contact_phone,
-        primary_contact_whatsapp: profile.primary_contact_whatsapp,
-        billing_contact_name: profile.billing_contact_name,
-        billing_contact_email: profile.billing_contact_email,
-        technical_contact_name: profile.technical_contact_name,
-        technical_contact_email: profile.technical_contact_email,
+        primary_contact_name: tenant.primary_contact_name,
+        primary_contact_title: tenant.primary_contact_title,
+        primary_contact_email: tenant.primary_contact_email,
+        primary_contact_phone: tenant.primary_contact_phone,
+        primary_contact_whatsapp: tenant.primary_contact_whatsapp,
+        billing_contact_name: tenant.billing_contact_name,
+        billing_contact_email: tenant.billing_contact_email,
+        technical_contact_name: tenant.technical_contact_name,
+        technical_contact_email: tenant.technical_contact_email,
       });
-      
+
       // Handle custom industry
-      if (profile.industry && !industryOptions.find(opt => opt.value === profile.industry)) {
+      if (tenant.industry && !industryOptions.find(opt => opt.value === tenant.industry)) {
         setShowCustomIndustry(true);
-        setCustomIndustry(profile.industry);
+        setCustomIndustry(tenant.industry);
       }
-      
+
       setEditModalOpen(true);
     } catch (error) {
-      console.error('Failed to fetch tenant profile:', error);
+      console.error('Failed to load tenant details:', error);
       toast.error('Failed to load tenant details');
     }
   };
@@ -214,14 +197,7 @@ const AdminTenants = () => {
       }
       
       // Update tenant profile
-      await brain.update_tenant_profile({ tenantId: editingTenant.slug }, updateData as TenantProfileRequest);
-      
-      // Update tenant basic info if cold_db_ref changed
-      if (updateData.cold_db_ref !== editingTenant.cold_db_ref) {
-        await brain.update_tenant({ tenantSlug: editingTenant.slug }, {
-          cold_db_ref: updateData.cold_db_ref || null
-        });
-      }
+      await brain.update_tenant_profile(updateData as TenantProfileRequest);
       
       toast.success('Tenant updated successfully!');
       setEditModalOpen(false);
@@ -450,41 +426,41 @@ const AdminTenants = () => {
         </div>
 
         <div className="bg-card rounded-lg border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Slug</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Confidence</TableHead>
-                <TableHead>TTL Days</TableHead>
-                <TableHead>Inbox Scope</TableHead>
-                <TableHead>Catalog</TableHead>
-                <TableHead>N8N URL</TableHead>
-                <TableHead>Cold DB</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <table className="w-full border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="border border-gray-300 px-4 py-2 text-left">Slug</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Confidence</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">TTL Days</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Inbox Scope</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Catalog</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">N8N URL</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Cold DB</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Created</th>
+                <th className="border border-gray-300 px-4 py-2 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
               {tenants.map((tenant) => (
-                <TableRow key={tenant.id}>
-                  <TableCell className="font-mono text-sm">{tenant.slug}</TableCell>
-                  <TableCell className="font-medium">{tenant.name}</TableCell>
-                  <TableCell>{getStatusBadge(tenant.status, tenant.deleted_at)}</TableCell>
-                  <TableCell>{tenant.confidence_threshold}</TableCell>
-                  <TableCell>{tenant.hot_ttl_days}</TableCell>
-                  <TableCell>{tenant.inbox_scope}</TableCell>
-                  <TableCell>
+                <tr key={tenant.id} className="hover:bg-gray-50">
+                  <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{tenant.slug}</td>
+                  <td className="border border-gray-300 px-4 py-2 font-medium">{tenant.name}</td>
+                  <td className="border border-gray-300 px-4 py-2">{getStatusBadge(tenant.status, tenant.deleted_at)}</td>
+                  <td className="border border-gray-300 px-4 py-2">{tenant.confidence_threshold}</td>
+                  <td className="border border-gray-300 px-4 py-2">{tenant.hot_ttl_days}</td>
+                  <td className="border border-gray-300 px-4 py-2">{tenant.inbox_scope}</td>
+                  <td className="border border-gray-300 px-4 py-2">
                     <Badge variant={tenant.catalog_enabled ? "default" : "outline"}>
                       {tenant.catalog_enabled ? "ON" : "OFF"}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2 font-mono text-xs">
                     {tenant.n8n_url ? (
-                      <a 
-                        href={tenant.n8n_url} 
-                        target="_blank" 
+                      <a
+                        href={tenant.n8n_url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline"
                       >
@@ -493,43 +469,23 @@ const AdminTenants = () => {
                     ) : (
                       <span className="text-muted-foreground">None</span>
                     )}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2 font-mono text-xs">
                     {tenant.cold_db_ref || <span className="text-muted-foreground">None</span>}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2 text-xs text-gray-600">
                     {new Date(tenant.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditModal(tenant)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {getLifecycleActions(tenant).map(({ action, label, icon: Icon, variant }) => (
-                          <DropdownMenuItem
-                            key={action}
-                            onClick={() => openLifecycleConfirmation(action, tenant)}
-                            className={variant === 'destructive' ? 'text-destructive focus:text-destructive' : ''}
-                          >
-                            <Icon className="h-4 w-4 mr-2" />
-                            {label}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    <Button variant="outline" size="sm" onClick={() => openEditModal(tenant)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
 
         {tenants.length === 0 && (
@@ -540,349 +496,331 @@ const AdminTenants = () => {
       </div>
       
       {/* Edit Modal */}
-      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Tenant: {editingTenant?.name}</DialogTitle>
-            <DialogDescription>
-              Update tenant configuration, company information, branding, and contact details.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Tenant Configuration */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Configuration</h3>
-              
-              <div>
-                <Label htmlFor="cold_db_ref">Cold Database Reference</Label>
-                <Input
-                  id="cold_db_ref"
-                  value={editFormData.cold_db_ref || ''}
-                  onChange={(e) => handleInputChange('cold_db_ref', e.target.value)}
-                  placeholder="cold-db-123"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="custom_domain">Custom Domain</Label>
-                <Input
-                  id="custom_domain"
-                  value={editFormData.custom_domain || ''}
-                  onChange={(e) => handleInputChange('custom_domain', e.target.value)}
-                  placeholder="flomastr.com/yourdomain"
-                />
-              </div>
-            </div>
-            
-            {/* Company Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Company Information</h3>
-              
-              <div>
-                <Label htmlFor="company_name">Company Name</Label>
-                <Input
-                  id="company_name"
-                  value={editFormData.company_name || ''}
-                  onChange={(e) => handleInputChange('company_name', e.target.value)}
-                  placeholder="ACME Corporation"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="industry">Industry</Label>
-                <Select
-                  value={editFormData.industry || ''}
-                  onValueChange={handleIndustryChange}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Edit Tenant: {editingTenant?.name}</h2>
+                <button
+                  onClick={() => setEditModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select industry" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {industryOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <X className="h-6 w-6" />
+                </button>
               </div>
-              
-              {showCustomIndustry && (
-                <div>
-                  <Label htmlFor="customIndustry">Specify Industry</Label>
-                  <Input
-                    id="customIndustry"
-                    value={customIndustry}
-                    onChange={(e) => setCustomIndustry(e.target.value)}
-                    placeholder="Enter your industry"
+              <p className="text-gray-600 mb-6">
+                Update tenant configuration, company information, branding, and contact details.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Tenant Configuration */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Configuration</h3>
+
+                  <div>
+                    <Label htmlFor="cold_db_ref">Cold Database Reference</Label>
+                    <input
+                      id="cold_db_ref"
+                      value={editFormData.cold_db_ref || ''}
+                      onChange={(e) => handleInputChange('cold_db_ref', e.target.value)}
+                      placeholder="cold-db-123"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="custom_domain">Custom Domain</Label>
+                    <input
+                      id="custom_domain"
+                      value={editFormData.custom_domain || ''}
+                      onChange={(e) => handleInputChange('custom_domain', e.target.value)}
+                      placeholder="flomastr.com/yourdomain"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+
+                {/* Company Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Company Information</h3>
+
+                  <div>
+                    <Label htmlFor="company_name">Company Name</Label>
+                    <input
+                      id="company_name"
+                      value={editFormData.company_name || ''}
+                      onChange={(e) => handleInputChange('company_name', e.target.value)}
+                      placeholder="ACME Corporation"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="industry">Industry</Label>
+                    <select
+                      id="industry"
+                      value={editFormData.industry || ''}
+                      onChange={(e) => handleIndustryChange(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select industry</option>
+                      {industryOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {showCustomIndustry && (
+                    <div>
+                      <Label htmlFor="customIndustry">Specify Industry</Label>
+                      <input
+                        id="customIndustry"
+                        value={customIndustry}
+                        onChange={(e) => setCustomIndustry(e.target.value)}
+                        placeholder="Enter your industry"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="company_size">Company Size</Label>
+                    <select
+                      id="company_size"
+                      value={editFormData.company_size || ''}
+                      onChange={(e) => handleInputChange('company_size', e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select company size</option>
+                      {companySizeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="website_url">Website URL</Label>
+                    <input
+                      id="website_url"
+                      value={editFormData.website_url || ''}
+                      onChange={(e) => handleInputChange('website_url', e.target.value)}
+                      placeholder="https://example.com"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="time_zone">Time Zone</Label>
+                    <select
+                      id="time_zone"
+                      value={editFormData.time_zone || ''}
+                      onChange={(e) => handleInputChange('time_zone', e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select timezone</option>
+                      {timezoneOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Company Address */}
+                <div className="md:col-span-2">
+                  <Label htmlFor="company_address">Company Address</Label>
+                  <textarea
+                    id="company_address"
+                    value={editFormData.company_address || ''}
+                    onChange={(e) => handleInputChange('company_address', e.target.value)}
+                    placeholder="Company address"
+                    rows={3}
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
-              )}
-              
-              <div>
-                <Label htmlFor="company_size">Company Size</Label>
-                <Select
-                  value={editFormData.company_size || ''}
-                  onValueChange={(value) => handleInputChange('company_size', value)}
+
+                {/* Branding */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Branding</h3>
+
+                  <div>
+                    <Label htmlFor="brand_primary">Primary Color</Label>
+                    <input
+                      id="brand_primary"
+                      type="color"
+                      value={editFormData.brand_primary || '#0052cc'}
+                      onChange={(e) => handleInputChange('brand_primary', e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+
+                {/* Primary Contact */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Primary Contact</h3>
+
+                  <div>
+                    <Label htmlFor="primary_contact_name">Contact Name</Label>
+                    <input
+                      id="primary_contact_name"
+                      value={editFormData.primary_contact_name || ''}
+                      onChange={(e) => handleInputChange('primary_contact_name', e.target.value)}
+                      placeholder="John Doe"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="primary_contact_title">Title</Label>
+                    <input
+                      id="primary_contact_title"
+                      value={editFormData.primary_contact_title || ''}
+                      onChange={(e) => handleInputChange('primary_contact_title', e.target.value)}
+                      placeholder="CEO"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="primary_contact_email">Email</Label>
+                    <input
+                      id="primary_contact_email"
+                      type="email"
+                      value={editFormData.primary_contact_email || ''}
+                      onChange={(e) => handleInputChange('primary_contact_email', e.target.value)}
+                      placeholder="john@example.com"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="primary_contact_phone">Phone</Label>
+                    <input
+                      id="primary_contact_phone"
+                      value={editFormData.primary_contact_phone || ''}
+                      onChange={(e) => handleInputChange('primary_contact_phone', e.target.value)}
+                      placeholder="+1-555-123-4567"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="primary_contact_whatsapp">WhatsApp</Label>
+                    <input
+                      id="primary_contact_whatsapp"
+                      value={editFormData.primary_contact_whatsapp || ''}
+                      onChange={(e) => handleInputChange('primary_contact_whatsapp', e.target.value)}
+                      placeholder="+1-555-123-4567"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+
+                {/* Additional Contacts */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Additional Contacts</h3>
+
+                  <div>
+                    <Label htmlFor="billing_contact_name">Billing Contact Name</Label>
+                    <input
+                      id="billing_contact_name"
+                      value={editFormData.billing_contact_name || ''}
+                      onChange={(e) => handleInputChange('billing_contact_name', e.target.value)}
+                      placeholder="Jane Smith"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="billing_contact_email">Billing Contact Email</Label>
+                    <input
+                      id="billing_contact_email"
+                      type="email"
+                      value={editFormData.billing_contact_email || ''}
+                      onChange={(e) => handleInputChange('billing_contact_email', e.target.value)}
+                      placeholder="billing@example.com"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="technical_contact_name">Technical Contact Name</Label>
+                    <input
+                      id="technical_contact_name"
+                      value={editFormData.technical_contact_name || ''}
+                      onChange={(e) => handleInputChange('technical_contact_name', e.target.value)}
+                      placeholder="Bob Johnson"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="technical_contact_email">Technical Contact Email</Label>
+                    <input
+                      id="technical_contact_email"
+                      type="email"
+                      value={editFormData.technical_contact_email || ''}
+                      onChange={(e) => handleInputChange('technical_contact_email', e.target.value)}
+                      placeholder="tech@example.com"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditModalOpen(false)}
+                  disabled={saving}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select company size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companySizeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="website_url">Website URL</Label>
-                <Input
-                  id="website_url"
-                  value={editFormData.website_url || ''}
-                  onChange={(e) => handleInputChange('website_url', e.target.value)}
-                  placeholder="https://example.com"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="time_zone">Time Zone</Label>
-                <Select
-                  value={editFormData.time_zone || ''}
-                  onValueChange={(value) => handleInputChange('time_zone', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select timezone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timezoneOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            {/* Company Address */}
-            <div className="md:col-span-2">
-              <Label htmlFor="company_address">Company Address</Label>
-              <Textarea
-                id="company_address"
-                value={editFormData.company_address || ''}
-                onChange={(e) => handleInputChange('company_address', e.target.value)}
-                placeholder="Company address"
-                rows={3}
-              />
-            </div>
-            
-            {/* Branding */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Branding</h3>
-              
-              <div>
-                <Label htmlFor="brand_primary">Primary Color</Label>
-                <Input
-                  id="brand_primary"
-                  type="color"
-                  value={editFormData.brand_primary || '#0052cc'}
-                  onChange={(e) => handleInputChange('brand_primary', e.target.value)}
-                />
-              </div>
-            </div>
-            
-            {/* Primary Contact */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Primary Contact</h3>
-              
-              <div>
-                <Label htmlFor="primary_contact_name">Contact Name</Label>
-                <Input
-                  id="primary_contact_name"
-                  value={editFormData.primary_contact_name || ''}
-                  onChange={(e) => handleInputChange('primary_contact_name', e.target.value)}
-                  placeholder="John Doe"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="primary_contact_title">Title</Label>
-                <Input
-                  id="primary_contact_title"
-                  value={editFormData.primary_contact_title || ''}
-                  onChange={(e) => handleInputChange('primary_contact_title', e.target.value)}
-                  placeholder="CEO"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="primary_contact_email">Email</Label>
-                <Input
-                  id="primary_contact_email"
-                  type="email"
-                  value={editFormData.primary_contact_email || ''}
-                  onChange={(e) => handleInputChange('primary_contact_email', e.target.value)}
-                  placeholder="john@example.com"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="primary_contact_phone">Phone</Label>
-                <Input
-                  id="primary_contact_phone"
-                  value={editFormData.primary_contact_phone || ''}
-                  onChange={(e) => handleInputChange('primary_contact_phone', e.target.value)}
-                  placeholder="+1-555-123-4567"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="primary_contact_whatsapp">WhatsApp</Label>
-                <Input
-                  id="primary_contact_whatsapp"
-                  value={editFormData.primary_contact_whatsapp || ''}
-                  onChange={(e) => handleInputChange('primary_contact_whatsapp', e.target.value)}
-                  placeholder="+1-555-123-4567"
-                />
-              </div>
-            </div>
-            
-            {/* Additional Contacts */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Additional Contacts</h3>
-              
-              <div>
-                <Label htmlFor="billing_contact_name">Billing Contact Name</Label>
-                <Input
-                  id="billing_contact_name"
-                  value={editFormData.billing_contact_name || ''}
-                  onChange={(e) => handleInputChange('billing_contact_name', e.target.value)}
-                  placeholder="Jane Smith"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="billing_contact_email">Billing Contact Email</Label>
-                <Input
-                  id="billing_contact_email"
-                  type="email"
-                  value={editFormData.billing_contact_email || ''}
-                  onChange={(e) => handleInputChange('billing_contact_email', e.target.value)}
-                  placeholder="billing@example.com"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="technical_contact_name">Technical Contact Name</Label>
-                <Input
-                  id="technical_contact_name"
-                  value={editFormData.technical_contact_name || ''}
-                  onChange={(e) => handleInputChange('technical_contact_name', e.target.value)}
-                  placeholder="Bob Johnson"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="technical_contact_email">Technical Contact Email</Label>
-                <Input
-                  id="technical_contact_email"
-                  type="email"
-                  value={editFormData.technical_contact_email || ''}
-                  onChange={(e) => handleInputChange('technical_contact_email', e.target.value)}
-                  placeholder="tech@example.com"
-                />
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} disabled={saving}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
             </div>
           </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditModalOpen(false)}
-              disabled={saving}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
       
-      {/* Lifecycle Confirmation Modal */}
-      <AlertDialog open={lifecycleConfirmation.isOpen} onOpenChange={(open) => {
-        if (!open) closeLifecycleConfirmation();
-      }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              {lifecycleConfirmation.action === 'hard_delete' && (
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              )}
-              {lifecycleConfirmation.action && getConfirmationConfig(lifecycleConfirmation.action).title || 'Confirm Action'}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                {lifecycleConfirmation.action ? getConfirmationConfig(lifecycleConfirmation.action).description : 'Please confirm this action.'}
-              </p>
-              {lifecycleConfirmation.tenant && (
-                <div className="bg-muted p-3 rounded-md">
-                  <p><strong>Tenant:</strong> {lifecycleConfirmation.tenant.name} ({lifecycleConfirmation.tenant.slug})</p>
-                  <p><strong>Current Status:</strong> {getStatusBadge(lifecycleConfirmation.tenant.status, lifecycleConfirmation.tenant.deleted_at)}</p>
-                </div>
-              )}
-              {lifecycleConfirmation.action === 'hard_delete' && (
-                <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-md">
-                  <p className="text-destructive font-medium">⚠️ WARNING: This action is irreversible!</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    All tenant data including contacts, messages, workflows, knowledge base, and settings will be permanently deleted.
-                  </p>
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          {lifecycleConfirmation.action && getConfirmationConfig(lifecycleConfirmation.action).requiresReason && (
-            <div className="space-y-2">
-              <Label htmlFor="reason">Reason (Required)</Label>
-              <Textarea
-                id="reason"
-                placeholder="Please provide a reason for this action..."
-                value={lifecycleConfirmation.reason}
-                onChange={(e) => setLifecycleConfirmation(prev => ({ ...prev, reason: e.target.value }))}
-                rows={3}
-              />
+      {/* Lifecycle Confirmation Modal - Temporarily disabled */}
+      {/* TODO: Implement AlertDialog or use window.confirm for lifecycle actions */}
+      {lifecycleConfirmation.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Confirm Action</h3>
+            <p className="mb-4">
+              {lifecycleConfirmation.action ? getConfirmationConfig(lifecycleConfirmation.action).description : 'Please confirm this action.'}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={closeLifecycleConfirmation}
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                disabled={lifecycleLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLifecycleAction}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                disabled={lifecycleLoading}
+              >
+                {lifecycleLoading ? 'Processing...' : 'Confirm'}
+              </button>
             </div>
-          )}
-          
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={lifecycleLoading}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleLifecycleAction}
-              disabled={lifecycleLoading}
-              className={lifecycleConfirmation.action && getConfirmationConfig(lifecycleConfirmation.action).variant === 'destructive' 
-                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' 
-                : ''}
-            >
-              {lifecycleLoading ? 'Processing...' : (
-                lifecycleConfirmation.action 
-                  ? getConfirmationConfig(lifecycleConfirmation.action).confirmText 
-                  : 'Confirm'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

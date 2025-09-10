@@ -9,7 +9,6 @@ from enum import Enum
 import json
 import hashlib
 import asyncpg
-import databutton as db
 from app.auth import AuthorizedUser
 from app.libs.models import Tenant, TenantUpdate, TenantCreate, TenantPolicies, WebChatSession, WebChatSessionCreate
 from app.libs.auth_utils import is_super_admin, get_normalized_user_context

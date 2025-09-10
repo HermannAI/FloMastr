@@ -1,10 +1,9 @@
 # Workspace version: 1.46.40
-python-multipart==0.0.9
-databutton==0.38.34
+python-multipart>=0.0.9
 fastapi==0.115.12
 uvicorn[standard]==0.34.2
 ipykernel==6.29.5
-openai
+openai>=1.0.0
 beautifulsoup4
 requests
 asyncpg

@@ -8,15 +8,29 @@ import requests
 import hashlib
 import json
 import io
+import os
 from PyPDF2 import PdfReader
-from openai import OpenAI
-import databutton as db
+
+# Try to import OpenAI, but make it optional
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    OpenAI = None
+
+# Try to import file handling dependencies, make them optional
+try:
+    from fastapi import UploadFile, File
+    MULTIPART_AVAILABLE = True
+except ImportError:
+    MULTIPART_AVAILABLE = False
+    UploadFile = None
+    File = None
+
 from app.libs.backend_auth import require_backend_token
 
 router = APIRouter(prefix="/tools")
-
-# OpenAI client
-client = OpenAI(api_key=db.secrets.get("OPENAI_API_KEY"))
 
 # Models
 class ConvertUrlRequest(BaseModel):
@@ -162,8 +176,15 @@ async def convert_file_to_md(
     """
     Accepts a file upload, extracts text, and returns it as markdown.
     """
+    
+    if not MULTIPART_AVAILABLE:
+        raise HTTPException(
+            status_code=503, 
+            detail="File upload functionality is currently unavailable. Please install python-multipart."
+        )
+    
     # --- START TEMPORARY DEBUGGING CODE ---
-    server_secret_key = db.secrets.get("BACKEND_API_SECRET_TOKEN")
+    server_secret_key = os.getenv("BACKEND_API_SECRET_TOKEN")
     incoming_header = request.headers.get("Authorization")
     print("--- START AUTH DEBUG ---")
     print(f"SERVER_SECRET_KEY_LOADED: {server_secret_key}")

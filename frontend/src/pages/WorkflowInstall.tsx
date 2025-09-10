@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Header } from "components/Header";
-import { useUser } from "@stackframe/react";
+import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +19,6 @@ type SetupState = 'loading' | 'ready' | 'in-progress' | 'completed' | 'error' | 
 export default function WorkflowInstall() {
   const { workflowId } = useParams<{ workflowId: string }>();
   const navigate = useNavigate();
-  const user = useUser();
   const { theme } = useTheme();
   const { tenant, isLoading: tenantLoading } = useTenant();
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -179,7 +177,15 @@ export default function WorkflowInstall() {
 
   return (
     <div className="min-h-screen bg-[var(--surface-light)] dark:bg-[var(--surface-dark)] text-[var(--text-light)] dark:text-[var(--text-dark)]">
-      <Header />
+      <Header 
+        onToggleTheme={() => {
+          const currentTheme = localStorage.getItem('theme') || 'system';
+          const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+          localStorage.setItem('theme', newTheme);
+          document.documentElement.className = newTheme;
+        }}
+        isDarkMode={localStorage.getItem('theme') === 'dark'}
+      />
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Back button */}
         <div className="flex items-center space-x-4 mb-8">

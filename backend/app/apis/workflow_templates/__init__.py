@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 import httpx
-import databutton as db
+import os
 
 router = APIRouter()
 
@@ -32,7 +32,7 @@ async def get_workflow_templates(
     """
     
     # Get master n8n API key from secrets
-    n8n_master_api_key = db.secrets.get("N8N_MASTER_API_KEY")
+    n8n_master_api_key = os.getenv("N8N_MASTER_API_KEY")
     if not n8n_master_api_key:
         raise HTTPException(status_code=500, detail="N8N master API key not configured")
     

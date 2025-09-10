@@ -1,20 +1,20 @@
 
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminLayout } from "components/AdminLayout";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+// import {
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableHeader,
+//   TableRow,
+// } from "../components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { AdminLayout } from "../components/AdminLayout";
 import { MessageSquare, Search, Filter, Eye, Edit, Trash2 } from "lucide-react";
 
 interface WABATemplate {
@@ -166,33 +166,31 @@ const AdminWABATemplates = () => {
               </div>
               <div className="w-40">
                 <label className="text-sm font-medium">Category</label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(category => (
-                      <SelectItem key={category} value={category}>
-                        {category === "all" ? "All Categories" : category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1"
+                >
+                  {categories.map(category => (
+                    <option key={category} value={category}>
+                      {category === "all" ? "All Categories" : category}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="w-40">
                 <label className="text-sm font-medium">Status</label>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statuses.map(status => (
-                      <SelectItem key={status} value={status}>
-                        {status === "all" ? "All Statuses" : status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1"
+                >
+                  {statuses.map(status => (
+                    <option key={status} value={status}>
+                      {status === "all" ? "All Statuses" : status}
+                    </option>
+                  ))}
+                </select>
               </div>
               <Button disabled>
                 New Template
@@ -213,57 +211,57 @@ const AdminWABATemplates = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Template</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Language</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Variables</TableHead>
-                  <TableHead>Usage</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <table className="w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-300 px-4 py-2 text-left">Template</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Category</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Language</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Variables</th>
+                  <th className="border border-gray-300 px-4 py-2 text-center">Usage</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Updated</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                 {filteredTemplates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell>
+                  <tr key={template.id} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 px-4 py-2">
                       <div>
                         <div className="font-medium">{template.name}</div>
-                        <div className="text-sm text-muted-foreground font-mono truncate max-w-xs">
+                        <div className="text-sm text-gray-600 font-mono truncate max-w-xs">
                           {template.content}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">
                       <Badge variant="outline">{template.category}</Badge>
-                    </TableCell>
-                    <TableCell className="uppercase text-xs font-mono">
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 uppercase text-xs font-mono">
                       {template.language}
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">
                       {getStatusBadge(template.status)}
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">
                       <div className="text-xs">
                         {template.variables.length} vars
                         {template.variables.length > 0 && (
-                          <div className="text-muted-foreground font-mono mt-1">
+                          <div className="text-gray-600 font-mono mt-1">
                             {template.variables.slice(0, 2).join(", ")}
                             {template.variables.length > 2 && "..."}
                           </div>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-center">
                       {template.usage_count.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2 text-xs text-gray-600">
                       {new Date(template.updated_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className="border border-gray-300 px-4 py-2">
                       <div className="flex gap-1">
                         <Button size="sm" variant="ghost" disabled>
                           <Eye className="h-3 w-3" />
@@ -275,11 +273,11 @@ const AdminWABATemplates = () => {
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
             
             {filteredTemplates.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">

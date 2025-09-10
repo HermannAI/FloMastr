@@ -5,7 +5,7 @@ from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Optional
 import asyncpg
-import databutton as db
+import os
 
 class TenantIsolationMiddleware(BaseHTTPMiddleware):
     """Middleware to ensure tenant data isolation
@@ -81,7 +81,7 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
     async def validate_and_get_tenant(self, tenant_slug: str) -> Optional[dict]:
         """Validate tenant exists and is active"""
         try:
-            database_url = db.secrets.get("DATABASE_URL_DEV")
+            database_url = os.getenv("DATABASE_URL_DEV")
             conn = await asyncpg.connect(database_url)
             
             try:

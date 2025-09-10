@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, condecimal
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+import uuid
 
 class TenantStatus(str, Enum):
     ACTIVE = "active"
@@ -163,6 +164,100 @@ class CompanySize(str, Enum):
     LARGE = "201-1000"
     ENTERPRISE = "1000+"
 
+# Hot Storage Models
+
+class Workflow(BaseModel):
+    id: Optional[str] = None
+    tenant_id: str
+    name: str
+    description: Optional[str] = None
+    n8n_workflow_id: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = Field(default_factory=list)
+    is_active: bool = Field(default=True)
+    is_public: bool = Field(default=False)
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+class WorkflowCreate(BaseModel):
+    tenant_id: str
+    name: str
+    description: Optional[str] = None
+    n8n_workflow_id: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = Field(default_factory=list)
+    is_public: bool = Field(default=False)
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+class WorkflowExecution(BaseModel):
+    id: Optional[str] = None
+    workflow_id: str
+    tenant_id: str
+    n8n_execution_id: Optional[str] = None
+    status: str = Field(default="running")
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+    execution_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    error_message: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+class KnowledgeBase(BaseModel):
+    id: Optional[str] = None
+    tenant_id: str
+    name: str
+    description: Optional[str] = None
+    source_type: Optional[str] = None  # 'upload', 'url', 'api', etc.
+    source_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    document_count: int = Field(default=0)
+    total_chunks: int = Field(default=0)
+    last_updated: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+class KnowledgeBaseCreate(BaseModel):
+    tenant_id: str
+    name: str
+    description: Optional[str] = None
+    source_type: Optional[str] = None
+    source_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+class Embedding(BaseModel):
+    id: Optional[str] = None
+    knowledge_base_id: str
+    tenant_id: str
+    chunk_text: str
+    chunk_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    embedding_vector: Optional[List[float]] = None  # 1536 dimensions for OpenAI
+    document_name: Optional[str] = None
+    chunk_index: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+class EmbeddingCreate(BaseModel):
+    knowledge_base_id: str
+    tenant_id: str
+    chunk_text: str
+    chunk_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    embedding_vector: List[float]
+    document_name: Optional[str] = None
+    chunk_index: Optional[int] = None
+
+class UserPreferences(BaseModel):
+    id: Optional[str] = None
+    user_id: str
+    tenant_id: Optional[str] = None
+    preferences: Dict[str, Any] = Field(default_factory=dict)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+class UserPreferencesCreate(BaseModel):
+    user_id: str
+    tenant_id: Optional[str] = None
+    preferences: Dict[str, Any] = Field(default_factory=dict)
+
+class UserPreferencesUpdate(BaseModel):
+    preferences: Dict[str, Any]
+
 __all__ = [
     "TenantStatus",
     "Tenant",
@@ -174,5 +269,16 @@ __all__ = [
     "WebChatSession",
     "WebChatSessionCreate",
     "Industry",
-    "CompanySize"
+    "CompanySize",
+    # Hot Storage Models
+    "Workflow",
+    "WorkflowCreate",
+    "WorkflowExecution",
+    "KnowledgeBase",
+    "KnowledgeBaseCreate",
+    "Embedding",
+    "EmbeddingCreate",
+    "UserPreferences",
+    "UserPreferencesCreate",
+    "UserPreferencesUpdate"
 ]
