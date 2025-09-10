@@ -5,7 +5,9 @@
     "strict": true,
     "module": "esnext",
     "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "types": []
   },
   "include": [
     "vite.config.ts",
