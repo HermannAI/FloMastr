@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FloMastr Tenant Resolution Test</title>
+</head>
+<body>
+    <h1>FloMastr Tenant Resolution Test</h1>
+    <div>
+        <label>Email:</label>
+        <input type="email" id="emailInput" value="hermann@changemastr.com" />
+        <button onclick="testTenantResolution()">Test Tenant Resolution</button>
+    </div>
+    <div id="results" style="margin-top: 20px; padding: 20px; background: #f5f5f5;"></div>
+
+    <script>
+        async function testTenantResolution() {
+            const email = document.getElementById('emailInput').value;
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                console.log('Testing tenant resolution for:', email);
+                resultsDiv.innerHTML = 'Testing...';
+                
+                const response = await fetch('/api/routes/resolve-tenant', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: email })
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Response data:', data);
+                    resultsDiv.innerHTML = `
+                        <h3>✅ Success!</h3>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Tenant ID:</strong> ${data.tenant_id}</p>
+                        <p><strong>Tenant Name:</strong> ${data.tenant_name}</p>
+                        <p><strong>Is Super Admin:</strong> ${data.is_super_admin}</p>
+                        <p><strong>Redirect URL:</strong> ${data.redirect_url}</p>
+                        <p><strong>Email:</strong> ${data.email}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    resultsDiv.innerHTML = `
+                        <h3>❌ Error!</h3>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Error:</strong> ${errorText}</p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Request failed:', error);
+                resultsDiv.innerHTML = `
+                    <h3>💥 Request Failed!</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

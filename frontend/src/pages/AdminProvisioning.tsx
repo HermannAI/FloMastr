@@ -2,13 +2,14 @@
 
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminLayout } from "../components/AdminLayout";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import brain from "../brain";
 import { TenantProvisionRequest } from "types";
@@ -16,6 +17,7 @@ import { useSuperAdmin } from "../components/AuthMiddleware";
 
 const AdminProvisioning = () => {
   const { isSuperAdmin, isLoading: authLoading } = useSuperAdmin();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -83,7 +85,14 @@ const AdminProvisioning = () => {
       const result = await response.json();
       console.log('Tenant provisioned successfully:', result);
       
-      toast.success(`Tenant "${formData.tenantName}" provisioned successfully!`);
+      // Show success toast with tenant info
+      toast.success(
+        `🎉 Tenant "${formData.tenantName}" provisioned successfully!`,
+        {
+          description: `Owner: ${formData.ownerEmail} • Slug: ${formData.tenantSlug}`,
+          duration: 4000,
+        }
+      );
       
       // Reset form
       setFormData({
@@ -93,9 +102,31 @@ const AdminProvisioning = () => {
         n8nUrl: ""
       });
       
-    } catch (error) {
+      // Redirect to tenants page after a brief delay to let the user see the success message
+      setTimeout(() => {
+        navigate('/admin-tenants');
+      }, 1500);
+      
+    } catch (error: any) {
       console.error('Failed to provision tenant:', error);
-      toast.error('Failed to provision tenant. Please check the logs for details.');
+      
+      // Try to extract more specific error information
+      let errorMessage = 'Failed to provision tenant. Please check the logs for details.';
+      
+      if (error?.response?.status === 409) {
+        errorMessage = 'Tenant slug or owner email already exists. Please choose different values.';
+      } else if (error?.response?.status === 400) {
+        errorMessage = 'Invalid tenant data provided. Please check your inputs.';
+      } else if (error?.response?.status === 403) {
+        errorMessage = 'Insufficient permissions to provision tenants.';
+      } else if (error?.message) {
+        errorMessage = `Provisioning failed: ${error.message}`;
+      }
+      
+      toast.error(errorMessage, {
+        description: 'Please verify your inputs and try again.',
+        duration: 5000,
+      });
     } finally {
       setLoading(false);
     }
@@ -202,8 +233,8 @@ const AdminProvisioning = () => {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Note:</strong> Additional tenant configuration (branding, company profile, contacts) 
-                  can be set up later through the tenant's settings page after provisioning.
+                  <strong>Note:</strong> After successful provisioning, you'll be redirected to the Tenants page 
+                  where you can configure additional settings like branding, company profile, and contacts.
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -217,10 +248,13 @@ const AdminProvisioning = () => {
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Provisioning Tenant...
+                    Creating {formData.tenantName || 'tenant'}...
                   </>
                 ) : (
-                  "Provision Tenant"
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Provision Tenant
+                  </>
                 )}
               </Button>
             </CardFooter>

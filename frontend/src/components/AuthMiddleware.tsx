@@ -170,7 +170,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('Checking super admin status via tenant resolution API...');
       
       try {
-        const response = await fetch(`/api/routes/resolve-tenant?email=${encodeURIComponent(user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress)}`);
+        const response = await fetch(`/routes/resolve-tenant?email=${encodeURIComponent(user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress)}`);
         if (response.ok) {
           const data = await response.json();
           console.log('Tenant resolution API response:', data);
@@ -328,7 +328,7 @@ const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
           const email = user.primaryEmailAddress.emailAddress;
           console.log('Checking super admin status for email:', email);
           
-          const response = await fetch(`/api/routes/resolve-tenant?email=${encodeURIComponent(email)}`);
+          const response = await fetch(`/routes/resolve-tenant?email=${encodeURIComponent(email)}`);
           if (response.ok) {
             const data = await response.json();
             isUserSuperAdmin = data.is_super_admin || false;
@@ -400,7 +400,7 @@ const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
       console.log('Resolving tenant for email:', email);
 
       // Call tenant resolution API with correct endpoint
-      const apiUrl = `/api/routes/resolve-tenant?email=${encodeURIComponent(email)}`;
+      const apiUrl = `/routes/resolve-tenant?email=${encodeURIComponent(email)}`;
       console.log('Calling tenant resolution API:', apiUrl);
 
       const response = await fetch(apiUrl, {

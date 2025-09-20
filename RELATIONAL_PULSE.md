@@ -195,7 +195,7 @@ Relational Pulse is **fully integrated** within FloMastr's existing infrastructu
 **API Response:**
 ```json
 {
-  "synthesized_message": "Hi John! 👋\n\nHope your week is off to a great start! Based on your recent questions about order tracking, I thought you'd love this tip: You can now get real-time inventory checks by simply asking 'Is [product] in stock?' \n\n📦 Also exciting news - we've just launched automated status updates that I think would save you time!\n\nAny questions about your current orders or our new features? Just reply and I'm here to help! 😊\n\nBest,\nYour WhappStream Assistant",
+  "synthesized_message": "Hi John! \n\nHope your week is off to a great start! Based on your recent questions about order tracking, I thought you'd love this tip: You can now get real-time inventory checks by simply asking 'Is [product] in stock?' \n\nAlso exciting news - we've just launched automated status updates that I think would save you time!\n\nAny questions about your current orders or our new features? Just reply and I'm here to help! \n\nBest,\nYour WhappStream Assistant",
   "personalization_elements": [
     "user_name",
     "recent_interaction_context", 
@@ -271,7 +271,7 @@ External Data Sources:
 
 #### **Layer 3: Tenant Branding**
 - **Brand voice**: Consistent with tenant's communication style
-- **Visual elements**: Emojis and formatting matching brand personality
+- **Visual elements**: Formatting matching brand personality
 - **Call-to-action**: Aligned with tenant's business objectives
 - **Compliance**: Respect tenant's regulatory requirements
 
@@ -412,7 +412,7 @@ PUT https://engine.flomastr.com/routes/tenants/{tenant_id}/pulse-settings
     "content_settings": {
       "max_message_length": 300,
       "tone": "friendly_professional",
-      "include_emojis": true,
+      "include_emojis": false,
       "include_call_to_action": true,
       "content_types": ["tips", "updates", "reminders"]
     },
@@ -524,4 +524,4 @@ psql $DATABASE_URL -c "
 "
 ```
 
-**Relational Pulse** transforms FloMastr into a true **Relational AI Partner** that proactively nurtures customer relationships through personalized, contextual, and valuable weekly communications! 🚀
+**Relational Pulse** transforms FloMastr into a true **Relational AI Partner** that proactively nurtures customer relationships through personalized, contextual, and valuable weekly communications!

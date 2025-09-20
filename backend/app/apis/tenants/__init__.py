@@ -1,7 +1,7 @@
 
 
 
-from fastapi import APIRouter, HTTPException, Header, UploadFile, File, status
+from fastapi import APIRouter, HTTPException, Header, UploadFile, File, status, Depends
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 from datetime import datetime
@@ -10,6 +10,7 @@ import json
 import hashlib
 import asyncpg
 from app.auth import AuthorizedUser
+from app.auth.super_admin_bypass import get_admin_user_or_bypass, AdminUserOrBypass
 from app.libs.models import Tenant, TenantUpdate, TenantCreate, TenantPolicies, WebChatSession, WebChatSessionCreate
 from app.libs.auth_utils import is_super_admin, get_normalized_user_context
 from app.libs.db_connection import get_db_connection
@@ -80,7 +81,7 @@ class TenantResolutionResponse(BaseModel):
     found: bool = False
 
 @router.get("/tenants")
-async def list_tenants(user: AuthorizedUser, skip: int = 0, limit: int = 100) -> List[Tenant]:
+async def list_tenants(user: AdminUserOrBypass = Depends(get_admin_user_or_bypass), skip: int = 0, limit: int = 100) -> List[Tenant]:
     """List all tenants (admin only in production)"""
     
     conn = await get_db_connection()
@@ -107,7 +108,7 @@ async def list_tenants(user: AuthorizedUser, skip: int = 0, limit: int = 100) ->
         await conn.close()
 
 @router.get("/tenants/{tenant_slug}")
-async def get_tenant_by_slug(tenant_slug: str, user: AuthorizedUser) -> Tenant:
+async def get_tenant_by_slug(tenant_slug: str, user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)) -> Tenant:
     """Get tenant by slug"""
     
     conn = await get_db_connection()
@@ -136,7 +137,7 @@ async def get_tenant_by_slug(tenant_slug: str, user: AuthorizedUser) -> Tenant:
         await conn.close()
 
 @router.post("/tenants")
-async def create_tenant(tenant_data: TenantCreate, user: AuthorizedUser) -> Tenant:
+async def create_tenant(tenant_data: TenantCreate, user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)) -> Tenant:
     """Create a new tenant"""
     
     conn = await get_db_connection()
@@ -203,7 +204,7 @@ async def create_tenant(tenant_data: TenantCreate, user: AuthorizedUser) -> Tena
         await conn.close()
 
 @router.put("/tenants/{tenant_slug}")
-async def update_tenant(tenant_slug: str, tenant_data: TenantUpdate, user: AuthorizedUser) -> Tenant:
+async def update_tenant(tenant_slug: str, tenant_data: TenantUpdate, user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)) -> Tenant:
     """Update tenant information"""
     
     conn = await get_db_connection()
@@ -277,7 +278,7 @@ async def update_tenant(tenant_slug: str, tenant_data: TenantUpdate, user: Autho
 async def update_tenant_policies(
     tenant_slug: str,
     policies: TenantPolicies,
-    user: AuthorizedUser
+    user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)
 ) -> Tenant:
     """Update tenant policy flags (Super-Admin only)"""
     if not is_super_admin(user):
@@ -318,7 +319,7 @@ async def update_tenant_policies(
 
 
 @router.delete("/tenants/{tenant_slug}")
-async def delete_tenant(tenant_slug: str, user: AuthorizedUser) -> dict:
+async def delete_tenant(tenant_slug: str, user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)) -> dict:
     """
     Delete tenant (super admin only)
     """
@@ -341,7 +342,7 @@ async def delete_tenant(tenant_slug: str, user: AuthorizedUser) -> dict:
 
 @router.get("/check-super-admin")
 async def check_super_admin(
-    user: AuthorizedUser
+    user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)
 ) -> dict:
     """Check if current user is super admin (debugging endpoint)"""
     
@@ -360,7 +361,7 @@ async def check_super_admin(
 @router.post("/webchat/sessions")
 async def create_webchat_session(
     session_data: WebChatSessionCreate,
-    user: AuthorizedUser,
+    user: AdminUserOrBypass = Depends(get_admin_user_or_bypass),
     host: Optional[str] = Header(None)
 ) -> WebChatSession:
     """Create a new webchat session"""
@@ -411,7 +412,7 @@ async def create_webchat_session(
         await conn.close()
 
 @router.get("/webchat/sessions/{session_key}")
-async def get_webchat_session(session_key: str, user: AuthorizedUser) -> WebChatSession:
+async def get_webchat_session(session_key: str, user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)) -> WebChatSession:
     """Get webchat session by key"""
     
     conn = await get_db_connection()

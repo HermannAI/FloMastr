@@ -1,0 +1,15 @@
+﻿Python Version: Python 3.11.9
+Import Test: FastAPI and Uvicorn OK
+Module Test: 
+GET / Response: {
+    "message":  "FloMastr Backend API is running!",
+    "version":  "1.0.0"
+}
+POST /routes/resolve-tenant Response: {
+    "tenant_id":  "super_admin",
+    "tenant_name":  "Super Admin",
+    "is_super_admin":  true,
+    "redirect_url":  "/super-admin/dashboard",
+    "email":  "hermann@changemastr.com"
+}
+Error: A parameter cannot be found that matches parameter name 'Force'.

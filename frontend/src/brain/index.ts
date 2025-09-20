@@ -49,11 +49,34 @@ const constructClient = () => {
     baseUrl,
     baseApiParams,
     customFetch: (url, options) => {
+      const urlString = typeof url === 'string' ? url : url.toString();
+      
       if (isDeployedToCustomApiPath) {
         // Remove /routes/ segment from path if the api is deployed and made accessible through
-        // another domain with custom path different from the databutton proxy path
-        const urlString = typeof url === 'string' ? url : url.toString();
-        return fetch(urlString.replace(API_PREFIX_PATH + "/routes", API_PREFIX_PATH), options);
+        // another domain with custom path different from the default API path
+        const modifiedUrl = urlString.replace(API_PREFIX_PATH + "/routes", API_PREFIX_PATH);
+        return fetch(modifiedUrl, options);
+      }
+
+      // In development mode, prepend /api to all requests to match Vite proxy configuration
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Extract pathname from full URL if needed
+        let pathToCheck = urlString;
+        if (urlString.startsWith('http://') || urlString.startsWith('https://')) {
+          try {
+            const urlObj = new URL(urlString);
+            pathToCheck = urlObj.pathname + urlObj.search;
+          } catch (e) {
+            console.error(`[Brain Client] Failed to parse URL: ${urlString}`, e);
+            return fetch(url, options);
+          }
+        }
+        
+        // Only add /api prefix if the path starts with /routes and doesn't already start with /api
+        if (pathToCheck.startsWith('/routes') && !pathToCheck.startsWith('/api')) {
+          const modifiedUrl = `/api${pathToCheck}`;
+          return fetch(modifiedUrl, options);
+        }
       }
 
       return fetch(url, options);
@@ -63,21 +86,25 @@ const constructClient = () => {
       try {
         console.log('🔍 SECURITY WORKER: Starting token retrieval...');
         
-        // Check if Clerk is available globally and has the correct API
+        // First check if Clerk is available globally and has the correct API
         if (window.Clerk && typeof window.Clerk.session?.getToken === 'function') {
           console.log('🔍 SECURITY WORKER: Clerk object found, attempting to get token...');
-          const token = await window.Clerk.session.getToken();
-          console.log('🔍 SECURITY WORKER: Token retrieved:', token ? 'SUCCESS' : 'NULL', token ? `(${token.substring(0, 20)}...)` : '');
-          
-          if (token) {
-            console.log('✅ SECURITY WORKER: Using Clerk session token from global Clerk object');
-            return {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            };
-          } else {
-            console.log('❌ SECURITY WORKER: Clerk session.getToken() returned null');
+          try {
+            const token = await window.Clerk.session.getToken();
+            console.log('🔍 SECURITY WORKER: Token retrieved:', token ? 'SUCCESS' : 'NULL', token ? `(${token.substring(0, 20)}...)` : '');
+            
+            if (token) {
+              console.log('✅ SECURITY WORKER: Using Clerk session token from global Clerk object');
+              return {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              };
+            } else {
+              console.log('❌ SECURITY WORKER: Clerk session.getToken() returned null');
+            }
+          } catch (error) {
+            console.error('❌ SECURITY WORKER: Error getting token from Clerk session:', error);
           }
         } else {
           console.log('❌ SECURITY WORKER: Clerk not available or missing session.getToken method');

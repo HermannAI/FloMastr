@@ -8,15 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Globe, Clipboard, Library } from 'lucide-react';
-import { UploadTab } from 'components/UploadTab';
-import { UrlTab } from 'components/UrlTab';
-import { PasteTab } from 'components/PasteTab';
-import { KnowledgeCardsTab } from 'components/KnowledgeCardsTab';
-import { KnowledgeList } from 'components/KnowledgeList';
-import { MetadataPanel } from 'components/MetadataPanel';
-import { Layout } from 'components/Layout';
-import { useAuthenticatedUser } from 'components/AuthMiddleware';
-import { useTenant } from 'utils/TenantProvider';
+import { UploadTab } from '@/components/UploadTab';
+import { UrlTab } from '@/components/UrlTab';
+import { PasteTab } from '@/components/PasteTab';
+import { KnowledgeCardsTab } from '@/components/KnowledgeCardsTab';
+import { KnowledgeList } from '@/components/KnowledgeList';
+import { MetadataPanel } from '@/components/MetadataPanel';
+import { Layout } from '@/components/Layout';
+import { useAuthenticatedUser } from '@/components/AuthMiddleware';
+import { useTenant } from '@/utils/TenantProvider';
 
 const ContextBuilder = () => {
   // Ensure user is authenticated for this protected page
@@ -53,7 +53,7 @@ const ContextBuilder = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <img 
-                  src="https://static.databutton.com/public/15880048-1dbd-4cea-820f-d5fbc363499d/Business Brain.png" 
+                  src="/assets/business-brain-icon.png" 
                   alt="Business Brain" 
                   className="w-12 h-12 object-contain"
                 />
@@ -107,15 +107,24 @@ const ContextBuilder = () => {
                     </TabsList>
                     
                     <TabsContent value="upload" className="mt-6">
-                      <UploadTab />
+                      <UploadTab 
+                        metadata={metadata}
+                        onMetadataChange={setMetadata}
+                      />
                     </TabsContent>
                     
                     <TabsContent value="url" className="mt-6">
-                      <UrlTab />
+                      <UrlTab 
+                        metadata={metadata}
+                        onMetadataChange={setMetadata}
+                      />
                     </TabsContent>
                     
                     <TabsContent value="paste" className="mt-6">
-                      <PasteTab />
+                      <PasteTab 
+                        metadata={metadata}
+                        onMetadataChange={setMetadata}
+                      />
                     </TabsContent>
                     
                     <TabsContent value="cards" className="mt-6">
@@ -133,8 +142,6 @@ const ContextBuilder = () => {
           <MetadataPanel
             metadata={metadata}
             onMetadataChange={setMetadata}
-            onSave={handleSaveWithMetadata}
-            onCancel={() => setShowMetadata(false)}
           />
         )}
       </div>

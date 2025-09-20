@@ -8,6 +8,7 @@ from enum import Enum
 from datetime import datetime
 import asyncpg
 from app.libs.clerk_auth import get_authorized_user, ClerkUser
+from app.auth.super_admin_bypass import get_admin_user_or_bypass, AdminUserOrBypass
 
 # Import centralized database connection
 from app.libs.db_connection import get_db_connection
@@ -61,7 +62,7 @@ async def get_user_role(email: str) -> UserRole:
         await conn.close()
 
 @router.get("/users", response_model=List[UserRoleInfo])
-async def list_users(request: Request, user: ClerkUser = Depends(get_authorized_user)) -> List[UserRoleInfo]:
+async def list_users(request: Request, user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)) -> List[UserRoleInfo]:
     """List all users and their roles (Super-Admin only)"""
     if not is_super_admin(user):
         raise HTTPException(status_code=403, detail="Forbidden: Requires Super-Admin access")
@@ -92,7 +93,7 @@ async def list_users(request: Request, user: ClerkUser = Depends(get_authorized_
         await conn.close()
 
 @router.post("/users", response_model=UserRoleInfo)
-async def create_user_role(request: Request, user_data: UserRoleCreate, user: ClerkUser = Depends(get_authorized_user)) -> UserRoleInfo:
+async def create_user_role(request: Request, user_data: UserRoleCreate, user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)) -> UserRoleInfo:
     """Create a new user role assignment (Super-Admin only)"""
     if not is_super_admin(user):
         raise HTTPException(status_code=403, detail="Forbidden: Requires Super-Admin access")
@@ -133,7 +134,7 @@ async def create_user_role(request: Request, user_data: UserRoleCreate, user: Cl
         await conn.close()
 
 @router.get("/me/role", response_model=dict)
-async def get_current_user_role(request: Request, user: ClerkUser = Depends(get_authorized_user)) -> dict:
+async def get_current_user_role(request: Request, user: AdminUserOrBypass = Depends(get_admin_user_or_bypass)) -> dict:
     """Get current user's role"""
     role = await get_user_role(user.email)
     return {

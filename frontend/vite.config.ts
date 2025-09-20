@@ -12,7 +12,7 @@ const buildVariables = () => {
 		__API_HOST__: JSON.stringify(apiUrl.replace(/^https?:\/\//, "")),
 		__API_PREFIX_PATH__: JSON.stringify(""),
 		__API_URL__: JSON.stringify(apiUrl),
-		__WS_API_URL__: JSON.stringify("ws://localhost:8000"),
+		__WS_API_URL__: JSON.stringify(apiUrl.replace(/^http/, "ws")),
 		__APP_BASE_PATH__: JSON.stringify("/"),
 		__APP_TITLE__: JSON.stringify("FloMastr"),
 		__APP_FAVICON_LIGHT__: JSON.stringify("/favicon-light.svg"),
@@ -31,64 +31,53 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'@': path.resolve(__dirname, './src'),
+			'brain': path.resolve(__dirname, './src/brain'),
+			'components': path.resolve(__dirname, './src/components'),
+			'pages': path.resolve(__dirname, './src/pages'),
+			'app': path.resolve(__dirname, './src/app'),
+			'utils': path.resolve(__dirname, './src/utils'),
 		},
 	},
 	server: {
 		host: true,
-		https: {
-			key: fs.readFileSync(path.resolve(__dirname, '.certs/key.pem')),
-			cert: fs.readFileSync(path.resolve(__dirname, '.certs/cert.pem')),
-		},
+		// Note: historyApiFallback is handled automatically by Vite for SPA routing
+		// Temporarily disable HTTPS to test
+		// https: {
+		// 	key: fs.readFileSync(path.resolve(__dirname, '.certs/key.pem')),
+		// 	cert: fs.readFileSync(path.resolve(__dirname, '.certs/cert.pem')),
+		// },
 		proxy: {
-			'/routes': {
-				target: 'http://localhost:8000',
-				changeOrigin: true,
-				secure: false,
-				configure: (proxy, options) => {
-					// Add debug logging
-					proxy.on('proxyReq', (proxyReq, req, res) => {
-						console.log('🔄 PROXY: Forwarding request to backend:', req.method, req.url);
-						console.log('🔄 PROXY: Target URL:', proxyReq.getHeader('host') + proxyReq.path);
-						
-						// Forward all cookies from the frontend to the backend
-						if (req.headers.cookie) {
-							proxyReq.setHeader('cookie', req.headers.cookie);
-							console.log('🔄 PROXY: Forwarding cookies');
-						}
-						// Forward Authorization header
-						if (req.headers.authorization) {
-							proxyReq.setHeader('authorization', req.headers.authorization);
-							console.log('🔄 PROXY: Forwarding authorization header');
-						}
-					});
-					
-					proxy.on('proxyRes', (proxyRes, req, res) => {
-						console.log('🔄 PROXY: Received response from backend:', proxyRes.statusCode);
-					});
-					
-					proxy.on('error', (err, req, res) => {
-						console.error('🔄 PROXY ERROR:', err);
-					});
-				},
-			},
 			'/api': {
-				target: 'http://localhost:8000',
+				target: 'http://backend:8000',  // Use Docker service name
 				changeOrigin: true,
-				rewrite: (path) => path.replace(/^\/api/, ''),
+				secure: false, // Critical for HTTPS→HTTP
+				rewrite: (path) => {
+					const newPath = path.replace(/^\/api/, '');
+					console.log(`[Vite Proxy] Rewriting path: ${path} → ${newPath}`);
+					return newPath;
+				},
+				configure: (proxy, options) => {
+					proxy.on('error', (err, req, res) => {
+						console.log('[Vite Proxy] Error:', err);
+					});
+					proxy.on('proxyReq', (proxyReq, req, res) => {
+						console.log(`[Vite Proxy] Forwarding request: ${req.method} ${req.url}`);
+					});
+				}
+			},
+			'/routes': {
+				target: 'http://backend:8000',  // Use Docker service name
+				changeOrigin: true,
 				secure: false,
 				configure: (proxy, options) => {
-					proxy.on('proxyReq', (proxyReq, req, res) => {
-						// Forward all cookies from the frontend to the backend
-						if (req.headers.cookie) {
-							proxyReq.setHeader('cookie', req.headers.cookie);
-						}
-						// Forward Authorization header
-						if (req.headers.authorization) {
-							proxyReq.setHeader('authorization', req.headers.authorization);
-						}
+					proxy.on('error', (err, req, res) => {
+						console.log('[Vite Proxy] Error:', err);
 					});
-				},
-			},
+					proxy.on('proxyReq', (proxyReq, req, res) => {
+						console.log(`[Vite Proxy] Forwarding request: ${req.method} ${req.url}`);
+					});
+				}
+			}
 		},
 	},
 });

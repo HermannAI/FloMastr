@@ -8,8 +8,8 @@ import { ArrowLeft, Workflow as WorkflowIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WorkflowCard } from "@/components/WorkflowCard";
 import { FilterBar } from "@/components/FilterBar";
-import brain from "brain";
-import { WorkflowResponse } from "types";
+import brain from "@/brain";
+import { WorkflowResponse } from "@/brain/data-contracts";
 
 interface WorkflowsData {
   workflows: WorkflowResponse[];

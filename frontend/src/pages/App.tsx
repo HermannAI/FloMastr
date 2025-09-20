@@ -7,8 +7,8 @@ import { useClerk } from "@clerk/clerk-react";
 export default function App() {
   const { signOut, user } = useClerk();
   
-  // FloMastr static logo URL (same as used in Header component)
-  const FLOMASTR_LOGO_URL = "https://static.databutton.com/public/15880048-1dbd-4cea-820f-d5fbc363499d/FloMastr-App.svg";
+  // FloMastr static logo URL (local file)
+  const FLOMASTR_LOGO_URL = "/FloMastr-Logo.png";
 
   const handleForceLogout = async () => {
     try {
@@ -119,7 +119,7 @@ export default function App() {
               <CardContent className="space-y-4 p-0">
                 <div className="mb-4">
                   <img 
-                    src="https://static.databutton.com/public/15880048-1dbd-4cea-820f-d5fbc363499d/Business Brain.png" 
+                    src="/assets/business-brain-icon.png" 
                     alt="Business Brain" 
                     className="w-16 h-16 object-contain"
                   />
@@ -138,7 +138,7 @@ export default function App() {
               <CardContent className="space-y-4 p-0">
                 <div className="mb-4">
                   <img 
-                    src="https://static.databutton.com/public/15880048-1dbd-4cea-820f-d5fbc363499d/Whapp Stream.png" 
+                    src="/assets/whappstream-icon.png" 
                     alt="WhappStream Customer Memory" 
                     className="w-16 h-16 object-contain"
                   />

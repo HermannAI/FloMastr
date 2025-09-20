@@ -123,12 +123,20 @@ const AdminTenants = () => {
   useEffect(() => {
     const fetchTenants = async () => {
       try {
-        const response = await brain.list_tenants({ limit: 500 }); // Increase limit to show all tenants
-        const data = await response.json();
-        setTenants(data);
+        console.log('🔍 FETCH TENANTS: Making request using brain client...');
+        const tenantsResponse = await brain.list_tenants({ limit: 500 });
+        
+        if (tenantsResponse.ok) {
+          const tenantsData = await tenantsResponse.json();
+          console.log('✅ FETCH TENANTS: Success, got tenants:', tenantsData.length, 'tenants');
+          setTenants(tenantsData);
+        } else {
+          console.error('❌ FETCH TENANTS: Failed to load tenants');
+          toast.error("Failed to load tenants");
+        }
       } catch (error) {
-        toast.error("Failed to load tenants");
-        console.error("Error fetching tenants:", error);
+        console.error('❌ FETCH TENANTS: Error loading tenants:', error);
+        toast.error("Error loading tenants");
       } finally {
         setLoading(false);
       }
@@ -217,6 +225,33 @@ const AdminTenants = () => {
 
   const handleInputChange = (field: keyof TenantProfileRequest, value: any) => {
     setEditFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (2MB limit)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size must be less than 2MB');
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (result) {
+        // For now, store as data URL. In production, you'd upload to a server
+        setEditFormData(prev => ({ ...prev, logo_svg: result }));
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleIndustryChange = (value: string) => {
@@ -426,66 +461,68 @@ const AdminTenants = () => {
         </div>
 
         <div className="bg-card rounded-lg border border-border">
-          <table className="w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="border border-gray-300 px-4 py-2 text-left">Slug</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Confidence</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">TTL Days</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Inbox Scope</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Catalog</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">N8N URL</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Cold DB</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Created</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tenants.map((tenant) => (
-                <tr key={tenant.id} className="hover:bg-gray-50">
-                  <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{tenant.slug}</td>
-                  <td className="border border-gray-300 px-4 py-2 font-medium">{tenant.name}</td>
-                  <td className="border border-gray-300 px-4 py-2">{getStatusBadge(tenant.status, tenant.deleted_at)}</td>
-                  <td className="border border-gray-300 px-4 py-2">{tenant.confidence_threshold}</td>
-                  <td className="border border-gray-300 px-4 py-2">{tenant.hot_ttl_days}</td>
-                  <td className="border border-gray-300 px-4 py-2">{tenant.inbox_scope}</td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <Badge variant={tenant.catalog_enabled ? "default" : "outline"}>
-                      {tenant.catalog_enabled ? "ON" : "OFF"}
-                    </Badge>
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 font-mono text-xs">
-                    {tenant.n8n_url ? (
-                      <a
-                        href={tenant.n8n_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {tenant.n8n_url.replace('https://', '')}
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground">None</span>
-                    )}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 font-mono text-xs">
-                    {tenant.cold_db_ref || <span className="text-muted-foreground">None</span>}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-xs text-gray-600">
-                    {new Date(tenant.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <Button variant="outline" size="sm" onClick={() => openEditModal(tenant)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Slug</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Name</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Confidence</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">TTL Days</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Inbox Scope</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Catalog</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">N8N URL</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Cold DB</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Created</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {tenants.map((tenant) => (
+                  <tr key={tenant.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3 font-mono text-sm text-foreground">{tenant.slug}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{tenant.name}</td>
+                    <td className="px-4 py-3">{getStatusBadge(tenant.status, tenant.deleted_at)}</td>
+                    <td className="px-4 py-3 text-foreground">{tenant.confidence_threshold}</td>
+                    <td className="px-4 py-3 text-foreground">{tenant.hot_ttl_days}</td>
+                    <td className="px-4 py-3 text-foreground">{tenant.inbox_scope}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={tenant.catalog_enabled ? "default" : "outline"}>
+                        {tenant.catalog_enabled ? "ON" : "OFF"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {tenant.n8n_url ? (
+                        <a
+                          href={tenant.n8n_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          {tenant.n8n_url.replace('https://', '')}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">None</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">
+                      {tenant.cold_db_ref || <span className="text-muted-foreground">None</span>}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {new Date(tenant.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Button variant="outline" size="sm" onClick={() => openEditModal(tenant)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {tenants.length === 0 && (
@@ -497,53 +534,28 @@ const AdminTenants = () => {
       
       {/* Edit Modal */}
       {editModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Edit Tenant: {editingTenant?.name}</h2>
+                <h2 className="text-xl font-semibold text-foreground">Edit Tenant: {editingTenant?.name}</h2>
                 <button
                   onClick={() => setEditModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
-              <p className="text-gray-600 mb-6">
+              <p className="text-muted-foreground mb-6">
                 Update tenant configuration, company information, branding, and contact details.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Tenant Configuration */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Configuration</h3>
-
-                  <div>
-                    <Label htmlFor="cold_db_ref">Cold Database Reference</Label>
-                    <input
-                      id="cold_db_ref"
-                      value={editFormData.cold_db_ref || ''}
-                      onChange={(e) => handleInputChange('cold_db_ref', e.target.value)}
-                      placeholder="cold-db-123"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="custom_domain">Custom Domain</Label>
-                    <input
-                      id="custom_domain"
-                      value={editFormData.custom_domain || ''}
-                      onChange={(e) => handleInputChange('custom_domain', e.target.value)}
-                      placeholder="flomastr.com/yourdomain"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-
-                {/* Company Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Company Information</h3>
+              <div className="space-y-6">
+                {/* Top Row: Company Information + Branding */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Company Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground">Company Information</h3>
 
                   <div>
                     <Label htmlFor="company_name">Company Name</Label>
@@ -553,6 +565,18 @@ const AdminTenants = () => {
                       onChange={(e) => handleInputChange('company_name', e.target.value)}
                       placeholder="ACME Corporation"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="company_address">Company Address</Label>
+                    <textarea
+                      id="company_address"
+                      value={editFormData.company_address || ''}
+                      onChange={(e) => handleInputChange('company_address', e.target.value)}
+                      placeholder="Company address"
+                      rows={3}
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </div>
 
@@ -632,22 +656,9 @@ const AdminTenants = () => {
                   </div>
                 </div>
 
-                {/* Company Address */}
-                <div className="md:col-span-2">
-                  <Label htmlFor="company_address">Company Address</Label>
-                  <textarea
-                    id="company_address"
-                    value={editFormData.company_address || ''}
-                    onChange={(e) => handleInputChange('company_address', e.target.value)}
-                    placeholder="Company address"
-                    rows={3}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                </div>
-
                 {/* Branding */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Branding</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Branding</h3>
 
                   <div>
                     <Label htmlFor="brand_primary">Primary Color</Label>
@@ -659,11 +670,54 @@ const AdminTenants = () => {
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </div>
-                </div>
 
-                {/* Primary Contact */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Primary Contact</h3>
+                  <div>
+                    <Label htmlFor="logo_upload">Logo Upload</Label>
+                    <input
+                      id="logo_upload"
+                      type="file"
+                      accept="image/*,.svg"
+                      onChange={(e) => handleLogoUpload(e)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-foreground file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Upload PNG, JPG, or SVG files (max 2MB)
+                    </p>
+                    {editFormData.logo_svg && (
+                      <div className="mt-2 p-2 bg-muted rounded border">
+                        <p className="text-xs text-muted-foreground mb-1">Current logo:</p>
+                        <div className="max-w-32 max-h-32 border rounded p-1 bg-background">
+                          {editFormData.logo_svg && editFormData.logo_svg.startsWith('data:image/') ? (
+                            <img 
+                              src={editFormData.logo_svg} 
+                              alt="Logo preview" 
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          ) : editFormData.logo_svg && editFormData.logo_svg.startsWith('http') ? (
+                            <img 
+                              src={editFormData.logo_svg} 
+                              alt="Logo preview" 
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          ) : editFormData.logo_svg && editFormData.logo_svg.startsWith('<svg') ? (
+                            <div dangerouslySetInnerHTML={{ __html: editFormData.logo_svg }} />
+                          ) : (
+                            <div className="text-xs text-muted-foreground p-2">
+                              Preview not available
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+                {/* Bottom Row: Primary Contact + Additional Contacts */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Primary Contact */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground">Primary Contact</h3>
 
                   <div>
                     <Label htmlFor="primary_contact_name">Contact Name</Label>
@@ -724,7 +778,7 @@ const AdminTenants = () => {
 
                 {/* Additional Contacts */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Additional Contacts</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Additional Contacts</h3>
 
                   <div>
                     <Label htmlFor="billing_contact_name">Billing Contact Name</Label>
@@ -773,8 +827,9 @@ const AdminTenants = () => {
                   </div>
                 </div>
               </div>
+              </div>
 
-              <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
+              <div className="flex justify-end space-x-2 mt-6 pt-4 border-t border-border">
                 <Button
                   variant="outline"
                   onClick={() => setEditModalOpen(false)}
@@ -783,7 +838,7 @@ const AdminTenants = () => {
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
-                <Button onClick={handleSave} disabled={saving}>
+                <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90">
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
@@ -796,27 +851,27 @@ const AdminTenants = () => {
       {/* Lifecycle Confirmation Modal - Temporarily disabled */}
       {/* TODO: Implement AlertDialog or use window.confirm for lifecycle actions */}
       {lifecycleConfirmation.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Confirm Action</h3>
-            <p className="mb-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card border border-border p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Confirm Action</h3>
+            <p className="text-muted-foreground mb-4">
               {lifecycleConfirmation.action ? getConfirmationConfig(lifecycleConfirmation.action).description : 'Please confirm this action.'}
             </p>
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="outline"
                 onClick={closeLifecycleConfirmation}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
                 disabled={lifecycleLoading}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleLifecycleAction}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                 disabled={lifecycleLoading}
+                className="bg-primary hover:bg-primary/90"
               >
                 {lifecycleLoading ? 'Processing...' : 'Confirm'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

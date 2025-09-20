@@ -463,7 +463,7 @@ export interface Tenant {
   hot_ttl_days?: number;
   /**
    * Inbox Scope
-   * @default "databutton"
+   * @default "flomastr"
    */
   inbox_scope?: string;
   /**

@@ -75,7 +75,7 @@ const HitlTasks: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img 
-              src="https://static.databutton.com/public/15880048-1dbd-4cea-820f-d5fbc363499d/Whapp Stream.png" 
+              src="/assets/whappstream-icon.png" 
               alt="WhappStream" 
               className="w-12 h-12 object-contain"
             />

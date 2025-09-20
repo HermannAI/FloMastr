@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/user-preferences", response_model=UserPreferences)
 async def create_user_preferences(
     prefs: UserPreferencesCreate,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> UserPreferences:
     """Create or update user preferences"""
     conn = await get_db_connection()
@@ -37,8 +37,8 @@ async def create_user_preferences(
 @router.get("/user-preferences/{user_id}", response_model=List[UserPreferences])
 async def get_user_preferences(
     user_id: str,
-    tenant_id: Optional[str] = None,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser,
+    tenant_id: Optional[str] = None
 ) -> List[UserPreferences]:
     """Get user preferences, optionally filtered by tenant"""
     conn = await get_db_connection()

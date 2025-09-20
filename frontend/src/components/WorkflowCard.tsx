@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
-import { useTenantNavigation } from "utils/navigation";
+import { useTenantNavigation } from "@/utils/navigation";
 
 interface WorkflowCardProps {
   id: string;

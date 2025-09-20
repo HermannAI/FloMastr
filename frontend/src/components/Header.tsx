@@ -35,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleTheme, isDarkMode }) => 
   const userLastName = user?.lastName;
 
   // FloMastr static logo URL
-  const FLOMASTR_LOGO_URL = "https://static.databutton.com/public/15880048-1dbd-4cea-820f-d5fbc363499d/FloMastr-App.svg";
+  const FLOMASTR_LOGO_URL = "/FloMastr-Logo.png";
 
   // Admin navigation items
   const adminNavItems = [
