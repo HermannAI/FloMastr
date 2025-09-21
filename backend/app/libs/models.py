@@ -1,6 +1,6 @@
 
 from pydantic import BaseModel, Field, condecimal
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from enum import Enum
 import uuid
@@ -12,16 +12,16 @@ class TenantStatus(str, Enum):
     SUSPENDED = "suspended"
 
 class Tenant(BaseModel):
-    id: int
+    id: Union[int, str, uuid.UUID]  # Support both int and UUID
     slug: str
     name: str
     n8n_url: Optional[str] = None
     status: TenantStatus
     branding_settings: dict = Field(default_factory=dict)
-    confidence_threshold: condecimal(ge=0, le=1) = Field(default=0.75)
-    hot_ttl_days: int = Field(default=30)
-    inbox_scope: str = Field(default="databutton")
-    catalog_enabled: bool = Field(default=False)
+    confidence_threshold: Optional[float] = Field(default=0.75, ge=0, le=1)
+    hot_ttl_days: Optional[int] = Field(default=30)
+    inbox_scope: Optional[str] = Field(default="databutton")  # Make optional
+    catalog_enabled: Optional[bool] = Field(default=False)
     cold_db_ref: Optional[str] = None
     created_at: datetime
     updated_at: datetime

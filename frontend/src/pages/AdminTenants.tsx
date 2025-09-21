@@ -22,6 +22,7 @@ import { Edit, Save, X, MoreHorizontal, Ban, RotateCcw, Archive, Trash2, AlertTr
 import brain from "../brain";
 import { toast } from "sonner";
 import { TenantProfileRequest, CompanySize, Industry } from "types";
+import { useAuthenticatedUser } from '@/components/AuthMiddleware';
 
 // Industry options matching Settings page
 const industryOptions = [

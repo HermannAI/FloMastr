@@ -45,7 +45,7 @@ type BaseApiParams = Omit<RequestParams, "signal" | "baseUrl" | "cancelToken">;
 const constructBaseApiParams = (): BaseApiParams => {
   return {
     credentials: "include",
-    secure: true,
+    secure: true,  // Always use security worker to add user email for super admin bypass
   };
 };
 
@@ -91,26 +91,34 @@ const constructClient = () => {
     },
     securityWorker: async () => {
       // SIMPLIFIED: Just try to get user email and token from Clerk
+      console.log('🔍 SECURITY WORKER: Called!');
       try {
         let userEmail = '';
         let token = null;
         
         // Get user info from Clerk if available
         if (window.Clerk) {
+          console.log('🔍 SECURITY WORKER: Clerk available');
           // Get user email
           if (window.Clerk.user) {
             userEmail = window.Clerk.user.primaryEmailAddress?.emailAddress || 
                        window.Clerk.user.emailAddresses?.[0]?.emailAddress || '';
+            console.log('🔍 SECURITY WORKER: User email found:', userEmail);
+          } else {
+            console.log('🔍 SECURITY WORKER: No Clerk user found');
           }
           
           // Get token
           if (window.Clerk.session?.getToken) {
             try {
               token = await window.Clerk.session.getToken();
+              console.log('🔍 SECURITY WORKER: Token acquired');
             } catch (error) {
               console.log('Could not get Clerk token:', error);
             }
           }
+        } else {
+          console.log('🔍 SECURITY WORKER: Clerk not available');
         }
         
         // Build headers - always include email for super admin check
@@ -122,7 +130,7 @@ const constructClient = () => {
           headers['Authorization'] = `Bearer ${token}`;
         }
         
-        console.log('🔍 Security Worker - Headers:', { hasEmail: !!userEmail, hasToken: !!token });
+        console.log('🔍 Security Worker - Headers:', { hasEmail: !!userEmail, hasToken: !!token, email: userEmail });
         return { headers };
         
       } catch (error) {
