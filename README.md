@@ -169,6 +169,39 @@ VITE_API_BASE_URL=http://localhost:8000
 3. **API connectivity**: All `/routes/*` requests from frontend proxy to backend automatically
 4. **Super admin access**: Use `hermann@changemastr.com` for admin dashboard access
 5. **Dependency issues**: Rebuild containers with `docker-compose up --build` if dependencies change
+6. **Container cache issues**: Use `docker-compose build --no-cache` if code changes aren't reflected
+7. **Authentication 401 errors**: Check that frontend SecurityWorker is adding X-User-Email header automatically
+
+### **🚨 Recent Issue Resolutions**
+
+**Container Deployment Problems:**
+```bash
+# If code changes aren't reflected in container:
+docker-compose down
+docker system prune -f  # Clear cache
+docker-compose build --no-cache
+docker-compose up -d
+
+# Verify container is using updated code:
+docker-compose logs backend | grep "FLOMASTR_MAIN_PY"  # Should show debug message
+curl http://localhost:8000/test-super-admin?email=hermann@changemastr.com  # Should return 200
+```
+
+**Authentication Issues:**
+```bash
+# Test super admin bypass is working:
+curl -H "X-User-Email: hermann@changemastr.com" http://localhost:5173/api/routes/tenants?limit=500
+# Should return 200 with tenant data (not 401/403)
+
+# Debug frontend SecurityWorker:
+# Check browser console for "🔍 SECURITY WORKER: Called!" messages
+# Verify "🔍 Security Worker - Headers:" shows email properly
+```
+
+**Database Model Issues:**
+- ✅ **Fixed**: Tenant model now handles UUID primary keys (was expecting int)
+- ✅ **Fixed**: Optional/nullable fields (inbox_scope, confidence_threshold) properly handled
+- ✅ **Fixed**: Pydantic validation errors resolved for database schema mismatch
 
 ### **🔐 Authentication & Super Admin Access - SIMPLIFIED APPROACH**
 
@@ -186,29 +219,50 @@ VITE_API_BASE_URL=http://localhost:8000
 
 **Testing Super Admin Access:**
 ```bash
-# Test super admin endpoint directly
+# Test super admin endpoint directly (backend)
 curl -X GET "http://localhost:8000/routes/users?email=hermann@changemastr.com" \
   -H "X-User-Email: hermann@changemastr.com"
+
+# Test tenant endpoint through frontend proxy (should work automatically)
+curl "http://localhost:5173/api/routes/tenants?limit=500"
+# Frontend SecurityWorker should automatically add X-User-Email header
 
 # Test tenant resolution (frontend proxy)
 curl "http://localhost:5173/routes/resolve-tenant?email=hermann%40changemastr.com"
 # Expected response: {"tenant_slug":null,"tenant_name":"Super Admin","is_super_admin":true,"found":true}
 
-# Login flow:
+# Debug super admin detection
+curl "http://localhost:8000/test-super-admin?email=hermann@changemastr.com"
+# Expected: {"email":"hermann@changemastr.com","is_super_admin":true,"super_admin_emails":["hermann@changemastr.com","service@changemastr.com"],"message":"Test endpoint working"}
+
+# Login flow (✅ WORKING):
 # 1. Navigate to http://localhost:5173
-# 2. Login with hermann@changemastr.com
-# 3. Should automatically redirect to admin dashboard (not generic dashboard)
+# 2. Login with hermann@changemastr.com (Clerk auth)
+# 3. Frontend SecurityWorker automatically adds email to all API requests
+# 4. Backend detects super admin email and bypasses authentication
+# 5. Should automatically redirect to admin dashboard with full tenant access
 ```
 
 **Super Admin Endpoints Available:**
 - `GET /routes/users` - List all users (mock data currently)
 - `POST /routes/users/roles` - Update user roles  
+- `GET /routes/tenants` - List all tenants with full data (✅ FIXED - UUID/nullable field validation)
+- `GET /routes/tenants-direct` - Direct tenant endpoint for testing
+- `GET /test-super-admin` - Debug endpoint to verify super admin detection
 - All existing admin endpoints with simplified access control
+
+**Recent Critical Fixes (Sept 2025):**
+- ✅ **Container Deployment**: Fixed Docker build cache preventing code updates from loading
+- ✅ **Pydantic Model**: Updated Tenant model to handle UUID fields and nullable strings from database
+- ✅ **Frontend SecurityWorker**: Fixed automatic X-User-Email header injection for super admin bypass
+- ✅ **Authentication Flow**: Complete end-to-end super admin bypass working (401 → 200 responses)
+- ✅ **Hot Reloading**: Resolved main.py syntax errors causing container startup failures
 
 **Technical Implementation:**
 - `backend/main.py`: Contains `is_super_admin_email()`, `check_super_admin_access()` functions
-- `frontend/src/brain/index.ts`: Simplified security worker with email header
-- `frontend/src/components/AuthMiddleware.tsx`: Admin routes bypass authentication
+- `backend/app/libs/models.py`: Updated Tenant model with Union[int, str, uuid.UUID] for id field
+- `frontend/src/brain/index.ts`: Fixed security worker with comprehensive logging and email detection
+- `frontend/src/components/AuthMiddleware.tsx`: Admin routes bypass authentication with proper super admin detection
 
 **Frontend-Backend API Communication:**
 - ✅ **Proxy Configuration**: Frontend `/routes/*` requests forward to `backend:8000`
