@@ -620,6 +620,8 @@ export interface TenantPolicies {
  * Request model for updating tenant profile including branding
  */
 export interface TenantProfileRequest {
+  /** Slug */
+  slug?: string | null;
   /** Brand Primary */
   brand_primary?: string | null;
   /** Logo Svg */

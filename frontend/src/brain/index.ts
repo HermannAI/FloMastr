@@ -31,9 +31,9 @@ const constructBaseUrl = (): string => {
     return `${domain}${API_PREFIX_PATH}`;
   }
 
-  // In development, use the frontend server so Vite proxy can handle requests
+  // In development, use empty baseUrl so Vite proxy can handle relative requests
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return window.location.origin;
+    return '';
   }
 
   // Access at configured proxy domain

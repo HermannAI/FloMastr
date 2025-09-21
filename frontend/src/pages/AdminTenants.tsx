@@ -146,43 +146,47 @@ const AdminTenants = () => {
     fetchTenants();
   }, []);
 
-  const openEditModal = async (tenant: Tenant) => {
-    setEditingTenant(tenant);
+  const openEditModal = async (tenantToEdit: Tenant) => {
+    // Find the current tenant data from state (in case it was updated)
+    const currentTenant = tenants.find(t => t.slug === tenantToEdit.slug) || tenantToEdit;
+    
+    setEditingTenant(currentTenant);
     try {
-      // Use tenant data directly (most profile fields are already in the Tenant object)
+      // Use current tenant data (most profile fields are already in the Tenant object)
       setEditFormData({
         // Tenant Configuration
-        cold_db_ref: tenant.cold_db_ref,
+        slug: currentTenant.slug, // Add slug for super admin updates
+        cold_db_ref: currentTenant.cold_db_ref,
 
         // Company Information
-        company_name: tenant.company_name,
-        industry: tenant.industry,
-        company_address: tenant.company_address,
-        website_url: tenant.website_url,
-        company_size: tenant.company_size as CompanySize | undefined,
-        time_zone: tenant.time_zone,
-        custom_domain: tenant.custom_domain,
+        company_name: currentTenant.company_name,
+        industry: currentTenant.industry,
+        company_address: currentTenant.company_address,
+        website_url: currentTenant.website_url,
+        company_size: currentTenant.company_size as CompanySize | undefined,
+        time_zone: currentTenant.time_zone,
+        custom_domain: currentTenant.custom_domain,
 
         // Branding (from branding_settings if available)
-        brand_primary: tenant.branding_settings?.brand_primary || '#0052cc',
-        logo_svg: tenant.branding_settings?.logo_svg,
+        brand_primary: currentTenant.branding_settings?.brand_primary || '#0052cc',
+        logo_svg: currentTenant.branding_settings?.logo_svg,
 
         // Contact Information
-        primary_contact_name: tenant.primary_contact_name,
-        primary_contact_title: tenant.primary_contact_title,
-        primary_contact_email: tenant.primary_contact_email,
-        primary_contact_phone: tenant.primary_contact_phone,
-        primary_contact_whatsapp: tenant.primary_contact_whatsapp,
-        billing_contact_name: tenant.billing_contact_name,
-        billing_contact_email: tenant.billing_contact_email,
-        technical_contact_name: tenant.technical_contact_name,
-        technical_contact_email: tenant.technical_contact_email,
+        primary_contact_name: currentTenant.primary_contact_name,
+        primary_contact_title: currentTenant.primary_contact_title,
+        primary_contact_email: currentTenant.primary_contact_email,
+        primary_contact_phone: currentTenant.primary_contact_phone,
+        primary_contact_whatsapp: currentTenant.primary_contact_whatsapp,
+        billing_contact_name: currentTenant.billing_contact_name,
+        billing_contact_email: currentTenant.billing_contact_email,
+        technical_contact_name: currentTenant.technical_contact_name,
+        technical_contact_email: currentTenant.technical_contact_email,
       });
 
       // Handle custom industry
-      if (tenant.industry && !industryOptions.find(opt => opt.value === tenant.industry)) {
+      if (currentTenant.industry && !industryOptions.find(opt => opt.value === currentTenant.industry)) {
         setShowCustomIndustry(true);
-        setCustomIndustry(tenant.industry);
+        setCustomIndustry(currentTenant.industry);
       }
 
       setEditModalOpen(true);
@@ -197,6 +201,13 @@ const AdminTenants = () => {
     
     setSaving(true);
     try {
+      // Validate required data
+      if (!editingTenant?.slug) {
+        console.error('❌ TENANT UPDATE: Missing tenant slug:', editingTenant);
+        toast.error('Error: Tenant identifier missing');
+        return;
+      }
+
       // Prepare data for update
       const updateData = { ...editFormData };
       
@@ -204,11 +215,19 @@ const AdminTenants = () => {
       if (showCustomIndustry && customIndustry.trim()) {
         updateData.industry = customIndustry.trim();
       }
-      
-      // Update tenant profile
-      await brain.update_tenant_profile(updateData as TenantProfileRequest);
-      
-      toast.success('Tenant updated successfully!');
+
+      // Ensure slug is included
+      updateData.slug = editingTenant.slug;
+
+      // Debug logging
+      console.log('🔍 TENANT UPDATE: Sending payload:', {
+        slug: updateData.slug,
+        company_name: updateData.company_name,
+        dataSize: JSON.stringify(updateData).length + ' bytes'
+      });
+
+      // Update tenant profile with slug included in form data
+      await brain.update_tenant_profile(updateData as TenantProfileRequest);      toast.success('Tenant updated successfully!');
       setEditModalOpen(false);
       
       // Refresh tenants list

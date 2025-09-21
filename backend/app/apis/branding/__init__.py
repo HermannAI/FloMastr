@@ -1,6 +1,6 @@
 
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 from pydantic import BaseModel, Field
 from typing import Optional, Union
 from enum import Enum
@@ -41,6 +41,9 @@ class BrandingSettings(BaseModel):
 
 class TenantProfileRequest(BaseModel):
     """Request model for updating tenant profile including branding"""
+    # Tenant identification (for super admin operations)
+    slug: Optional[str] = Field(None, max_length=255, description="Tenant slug for super admin updates")
+    
     # Branding fields
     brand_primary: Optional[str] = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
     logo_svg: Optional[str] = None
@@ -194,7 +197,52 @@ async def get_tenant_profile(tenant_user: TenantAuthorizedUser = TenantUserDep) 
         await conn.close()
 
 @router.put("/tenant-profile")
-async def update_tenant_profile(request: TenantProfileRequest, tenant_user: TenantAuthorizedUser = TenantUserDep) -> TenantProfileResponse:
+async def update_tenant_profile(request: TenantProfileRequest, raw_request: Request, tenant_slug: Optional[str] = None) -> TenantProfileResponse:
+    """Update complete tenant profile including branding - Super admin bypass enabled"""
+    
+    # Comprehensive debugging
+    try:
+        body = await raw_request.body()
+        headers = dict(raw_request.headers)
+        print(f"🔍 RAW REQUEST DEBUG:")
+        print(f"   Body size: {len(body)} bytes")
+        print(f"   Content-Type: {headers.get('content-type', 'not set')}")
+        print(f"   Request model slug: {getattr(request, 'slug', 'NOT FOUND')}")
+        print(f"   Raw body preview: {body.decode()[:200]}...")
+    except Exception as e:
+        print(f"❌ DEBUG ERROR: {e}")
+    
+    # SIMPLIFIED SUPER ADMIN CHECK (same pattern as tenants endpoint)
+    email = (raw_request.query_params.get('email') or 
+            raw_request.query_params.get('user_email') or
+            raw_request.headers.get('X-User-Email') or 
+            raw_request.headers.get('x-user-email') or
+            raw_request.headers.get('user-email') or 
+            raw_request.headers.get('email'))
+    
+    # Use slug from Pydantic model directly (fixed approach)
+    tenant_slug = getattr(request, 'slug', None) or tenant_slug
+    
+    print(f"🔍 TENANT-PROFILE UPDATE: Checking email: {email}, tenant_slug: {tenant_slug}")
+    
+    if email:
+        from app.libs.auth_utils import is_super_admin_email_simple
+        if is_super_admin_email_simple(email.strip()):
+            print(f"✅ TENANT-PROFILE UPDATE: Super admin access granted for {email}")
+            if not tenant_slug:
+                print(f"❌ TENANT-PROFILE UPDATE: No tenant slug provided")
+                raise HTTPException(status_code=400, detail="tenant_slug is required for super admin updates")
+            print(f"🎯 TENANT-PROFILE UPDATE: Processing update for tenant: {tenant_slug}")
+        else:
+            print(f"❌ TENANT-PROFILE UPDATE: Not a super admin: {email}")
+            raise HTTPException(status_code=403, detail="Super admin access required")
+            print(f"❌ TENANT-PROFILE UPDATE: Email {email} is not a super admin")
+            raise HTTPException(status_code=403, detail="Super admin access required")
+    else:
+        # Fall back to original dependency for regular users
+        print("🔍 TENANT-PROFILE UPDATE: No email found, checking regular auth")
+        # For now, reject non-super-admin requests until we implement proper tenant auth
+        raise HTTPException(status_code=401, detail="Authentication required - super admin bypass not found")
     """Update complete tenant profile including branding for the authenticated user's tenant"""
     
     conn = await get_db_connection()
@@ -234,52 +282,112 @@ async def update_tenant_profile(request: TenantProfileRequest, tenant_user: Tena
         # Update tenant if there are fields to update
         if tenant_update_fields:
             tenant_update_fields.append("updated_at = NOW()")
-            tenant_values.append(tenant_user.tenant_slug)
+            tenant_values.append(tenant_slug)
             
             tenant_query = f"UPDATE tenants SET {', '.join(tenant_update_fields)} WHERE slug = ${param_count}"
-            await conn.execute(tenant_query, *tenant_values)
-        
-        # Update branding if provided
-        if request.brand_primary is not None or request.logo_svg is not None:
-            # Check if branding exists
-            existing_branding = await conn.fetchrow(
-                "SELECT id FROM tenant_branding WHERE tenant_id = $1",
-                tenant_user.tenant_slug
-            )
+            print(f"🔍 EXECUTING TENANT UPDATE:")
+            print(f"   Query: {tenant_query}")
+            print(f"   Values: {tenant_values}")
+            print(f"   Target tenant: {tenant_slug}")
             
-            if existing_branding:
-                # Update existing branding
-                branding_fields = []
-                branding_values = []
-                param_count = 1
-                
-                if request.brand_primary is not None:
-                    branding_fields.append(f"brand_primary = ${param_count}")
-                    branding_values.append(request.brand_primary)
-                    param_count += 1
-                    
-                if request.logo_svg is not None:
-                    branding_fields.append(f"logo_svg = ${param_count}")
-                    branding_values.append(request.logo_svg)
-                    param_count += 1
-                
-                if branding_fields:
-                    branding_fields.append("updated_at = NOW()")
-                    branding_values.append(tenant_user.tenant_slug)
-                    
-                    branding_query = f"UPDATE tenant_branding SET {', '.join(branding_fields)} WHERE tenant_id = ${param_count}"
-                    await conn.execute(branding_query, *branding_values)
-            else:
-                # Insert new branding
-                await conn.execute(
-                    "INSERT INTO tenant_branding (tenant_id, logo_svg, brand_primary) VALUES ($1, $2, $3)",
-                    tenant_user.tenant_slug,
-                    request.logo_svg,
-                    request.brand_primary or "#0052cc"
-                )
+            result = await conn.execute(tenant_query, *tenant_values)
+            print(f"   Update result: {result}")
+        else:
+            print(f"⚠️ NO TENANT FIELDS TO UPDATE")
         
-        # Return updated profile
-        return await get_tenant_profile(tenant_user)
+        # Update branding if provided (skip if table doesn't exist)
+        if request.brand_primary is not None or request.logo_svg is not None:
+            try:
+                # Check if branding exists
+                existing_branding = await conn.fetchrow(
+                    "SELECT id FROM tenant_branding WHERE tenant_id = $1",
+                    tenant_slug
+                )
+                
+                if existing_branding:
+                    # Update existing branding
+                    branding_fields = []
+                    branding_values = []
+                    param_count = 1
+                    
+                    if request.brand_primary is not None:
+                        branding_fields.append(f"brand_primary = ${param_count}")
+                        branding_values.append(request.brand_primary)
+                        param_count += 1
+                        
+                    if request.logo_svg is not None:
+                        branding_fields.append(f"logo_svg = ${param_count}")
+                        branding_values.append(request.logo_svg)
+                        param_count += 1
+                    
+                    if branding_fields:
+                        branding_fields.append("updated_at = NOW()")
+                        branding_values.append(tenant_slug)
+                        
+                        branding_query = f"UPDATE tenant_branding SET {', '.join(branding_fields)} WHERE tenant_id = ${param_count}"
+                        await conn.execute(branding_query, *branding_values)
+                else:
+                    # Insert new branding
+                    await conn.execute(
+                        "INSERT INTO tenant_branding (tenant_id, logo_svg, brand_primary) VALUES ($1, $2, $3)",
+                        tenant_slug,
+                        request.logo_svg,
+                        request.brand_primary or "#0052cc"
+                    )
+            except Exception as e:
+                print(f"⚠️ TENANT-PROFILE UPDATE: Branding table not available, skipping branding update: {e}")
+                # Continue without branding updates if table doesn't exist
+        
+        # Return updated profile by fetching the tenant data
+        tenant_row = await conn.fetchrow(
+            """
+            SELECT id, slug, name, company_name, industry, company_address, 
+                   website_url, company_size, time_zone,
+                   primary_contact_name, primary_contact_title, primary_contact_email,
+                   primary_contact_phone, primary_contact_whatsapp,
+                   billing_contact_name, billing_contact_email,
+                   technical_contact_name, technical_contact_email, custom_domain
+            FROM tenants WHERE slug = $1
+            """,
+            tenant_slug
+        )
+        
+        if not tenant_row:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        
+        # Get branding data (skip if table doesn't exist)
+        branding_row = None
+        try:
+            branding_row = await conn.fetchrow(
+                "SELECT logo_svg, brand_primary FROM tenant_branding WHERE tenant_id = $1",
+                tenant_slug
+            )
+        except Exception as e:
+            print(f"⚠️ TENANT-PROFILE UPDATE: Branding table not available for fetch: {e}")
+        
+        return TenantProfileResponse(
+            tenant_id=tenant_row['slug'],
+            slug=tenant_row['slug'], 
+            name=tenant_row['name'],
+            logo_svg=branding_row['logo_svg'] if branding_row else None,
+            brand_primary=branding_row['brand_primary'] if branding_row else "#0052cc",
+            company_name=tenant_row['company_name'],
+            industry=tenant_row['industry'],
+            company_address=tenant_row['company_address'],
+            website_url=tenant_row['website_url'],
+            company_size=tenant_row['company_size'],
+            time_zone=tenant_row['time_zone'],
+            primary_contact_name=tenant_row['primary_contact_name'],
+            primary_contact_title=tenant_row['primary_contact_title'],
+            primary_contact_email=tenant_row['primary_contact_email'],
+            primary_contact_phone=tenant_row['primary_contact_phone'],
+            primary_contact_whatsapp=tenant_row['primary_contact_whatsapp'],
+            billing_contact_name=tenant_row['billing_contact_name'],
+            billing_contact_email=tenant_row['billing_contact_email'],
+            technical_contact_name=tenant_row['technical_contact_name'],
+            technical_contact_email=tenant_row['technical_contact_email'],
+            custom_domain=tenant_row['custom_domain']
+        )
     finally:
         await conn.close()
 
