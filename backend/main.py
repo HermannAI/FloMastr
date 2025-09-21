@@ -116,30 +116,7 @@ def import_api_routers() -> APIRouter:
     return routes
 
 # Add user management endpoints for super admins
-@app.get("/routes/users")
-async def list_users(request: Request, skip: int = 0, limit: int = 100):
-    """List all users - Super admins only"""
-    print(f"*** LIST USERS called - skip: {skip}, limit: {limit} ***")
-    
-    if not check_super_admin_access(request):
-        raise HTTPException(status_code=403, detail="Super admin access required")
-    
-    try:
-        # For now, return mock data until we have a users table
-        mock_users = [
-            {"id": 1, "email": "user1@example.com", "name": "User One", "role": "user", "created_at": "2024-01-01"},
-            {"id": 2, "email": "user2@example.com", "name": "User Two", "role": "admin", "created_at": "2024-01-02"},
-            {"id": 3, "email": "admin@flomastr.com", "name": "Admin User", "role": "super_admin", "created_at": "2024-01-03"}
-        ]
-        
-        print(f'Successfully fetched {len(mock_users)} users (mock data)')
-        return JSONResponse(content=mock_users)
-    
-    except Exception as e:
-        print(f'Error in list_users: {str(e)}')
-        logger.error(f"Error in list_users: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Users fetch error: {str(e)}")
-
+# REMOVED: Mock /routes/users endpoint - using real user_management API instead
 @app.get("/routes/tenants-direct")
 async def list_tenants_direct(request: Request, skip: int = 0, limit: int = 100):
     """Direct tenants endpoint to test our super admin logic"""

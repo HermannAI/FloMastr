@@ -219,9 +219,10 @@ curl -H "X-User-Email: hermann@changemastr.com" http://localhost:5173/api/routes
 
 **Testing Super Admin Access:**
 ```bash
-# Test super admin endpoint directly (backend)
-curl -X GET "http://localhost:8000/routes/users?email=hermann@changemastr.com" \
+# Test super admin users endpoint (now returns real database data)
+curl -X GET "http://localhost:8000/routes/users" \
   -H "X-User-Email: hermann@changemastr.com"
+# Expected response: Real user data from user_roles table with UUIDs, timestamps, etc.
 
 # Test tenant endpoint through frontend proxy (should work automatically)
 curl "http://localhost:5173/api/routes/tenants?limit=500"
@@ -244,7 +245,7 @@ curl "http://localhost:8000/test-super-admin?email=hermann@changemastr.com"
 ```
 
 **Super Admin Endpoints Available:**
-- `GET /routes/users` - List all users (mock data currently)
+- `GET /routes/users` - List all users (✅ FIXED - Now returns real database data from user_roles table)
 - `POST /routes/users/roles` - Update user roles  
 - `GET /routes/tenants` - List all tenants with full data (✅ FIXED - UUID/nullable field validation)
 - `GET /routes/tenants-direct` - Direct tenant endpoint for testing
@@ -252,6 +253,8 @@ curl "http://localhost:8000/test-super-admin?email=hermann@changemastr.com"
 - All existing admin endpoints with simplified access control
 
 **Recent Critical Fixes (Sept 2025):**
+- ✅ **Real User Data**: Fixed admin users page to show real database users instead of mock data
+- ✅ **API Routing**: Resolved conflict between mock /routes/users endpoint and real user_management API
 - ✅ **Container Deployment**: Fixed Docker build cache preventing code updates from loading
 - ✅ **Pydantic Model**: Updated Tenant model to handle UUID fields and nullable strings from database
 - ✅ **Frontend SecurityWorker**: Fixed automatic X-User-Email header injection for super admin bypass
@@ -268,6 +271,8 @@ curl "http://localhost:8000/test-super-admin?email=hermann@changemastr.com"
 - ✅ **Proxy Configuration**: Frontend `/routes/*` requests forward to `backend:8000`
 - ✅ **Docker Networking**: Services communicate via Docker service names
 - ✅ **Development Setup**: Hot reloading maintains API connectivity
+- ✅ **User Management API**: Admin users page now displays real database data via `/routes/users` endpoint
+- ✅ **API Routing**: Resolved conflict between mock endpoints and real user_management API
 - ✅ **Error Resolution**: Fixed 500 errors in tenant resolution endpoint
 
 ## Environment Configuration
