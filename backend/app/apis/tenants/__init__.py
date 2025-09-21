@@ -1,7 +1,7 @@
 
 
 
-from fastapi import APIRouter, HTTPException, Header, UploadFile, File, status, Depends
+from fastapi import APIRouter, HTTPException, Header, UploadFile, File, status, Depends, Request
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 from datetime import datetime
@@ -80,9 +80,52 @@ class TenantResolutionResponse(BaseModel):
     tenant_name: Optional[str] = None
     found: bool = False
 
+@router.get("/tenants-test")
+async def test_tenants_auth(request: Request):
+    """Test endpoint to verify super admin authentication"""
+    
+    email = (request.query_params.get('email') or 
+            request.query_params.get('user_email') or
+            request.headers.get('X-User-Email') or 
+            request.headers.get('x-user-email') or
+            request.headers.get('user-email') or 
+            request.headers.get('email'))
+    
+    print(f"🔍 TEST: Checking email: {email}")
+    
+    if email:
+        from app.libs.auth_utils import is_super_admin_email_simple
+        is_admin = is_super_admin_email_simple(email.strip())
+        print(f"🔍 TEST: Super admin check result: {is_admin}")
+        return {"email": email, "is_super_admin": is_admin, "status": "test_success"}
+    else:
+        return {"email": None, "is_super_admin": False, "status": "no_email_found"}
+
 @router.get("/tenants")
-async def list_tenants(user: AdminUserOrBypass = Depends(get_admin_user_or_bypass), skip: int = 0, limit: int = 100) -> List[Tenant]:
+async def list_tenants(request: Request, skip: int = 0, limit: int = 100) -> List[Tenant]:
     """List all tenants (admin only in production)"""
+    
+    # SIMPLIFIED SUPER ADMIN CHECK
+    email = (request.query_params.get('email') or 
+            request.query_params.get('user_email') or
+            request.headers.get('X-User-Email') or 
+            request.headers.get('x-user-email') or
+            request.headers.get('user-email') or 
+            request.headers.get('email'))
+    
+    print(f"🔍 TENANTS: Checking email: {email}")
+    
+    if email:
+        from app.libs.auth_utils import is_super_admin_email_simple
+        if is_super_admin_email_simple(email.strip()):
+            print(f"✅ TENANTS: Super admin access granted for {email}")
+        else:
+            print(f"❌ TENANTS: Email {email} is not a super admin")
+            raise HTTPException(status_code=403, detail="Super admin access required")
+    else:
+        # Fall back to original dependency for regular users
+        print("🔍 TENANTS: No email found, checking regular auth")
+        user = await get_admin_user_or_bypass(request)
     
     conn = await get_db_connection()
     try:

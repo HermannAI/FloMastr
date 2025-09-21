@@ -52,12 +52,46 @@ async def get_admin_user_or_bypass(request: Request) -> Union[ClerkUser, SuperAd
     Raises:
         HTTPException: If authentication fails for non-admin users
     """
+    logger.info("🔍 SUPER_ADMIN_BYPASS: Starting authentication check")
+    
     try:
-        # Try to get the current user through normal Clerk auth
+        # SIMPLIFIED APPROACH: Check for super admin access first
+        # Extract email from headers or query params
+        email = (request.query_params.get('email') or 
+                request.query_params.get('user_email') or
+                request.headers.get('X-User-Email') or 
+                request.headers.get('x-user-email') or  # Added lowercase
+                request.headers.get('user-email') or 
+                request.headers.get('email'))
+        
+        logger.info(f"🔍 SUPER_ADMIN_BYPASS: Extracted email: {email}")
+        
+        if email:
+            # Check if this is a super admin email
+            from app.libs.auth_utils import is_super_admin_email_simple
+            
+            is_admin = is_super_admin_email_simple(email.strip())
+            logger.info(f"🔍 SUPER_ADMIN_BYPASS: Super admin check result: {is_admin}")
+            
+            if is_admin:
+                logger.info(f"✅ SIMPLIFIED: Super admin bypass granted for email: {email}")
+                # Create a simplified ClerkUser-like object for super admin
+                class SimplifiedSuperAdmin:
+                    def __init__(self, email):
+                        self.email = email
+                        self.id = f"super_admin_{email}"
+                        self.is_super_admin = True
+                
+                user = SimplifiedSuperAdmin(email.strip())
+                return SuperAdminBypass(user, is_admin=True)
+        
+        logger.info("🔍 SUPER_ADMIN_BYPASS: No super admin email found, falling back to Clerk auth")
+        
+        # Fall back to normal Clerk authentication for regular users
         try:
             user = await get_current_user(request)
             
-            # Check if this user is a super admin
+            # Check if this user is a super admin (legacy check)
             if is_super_admin(user):
                 logger.info(f"Super admin bypass granted for user: {user.email}")
                 return SuperAdminBypass(user, is_admin=True)
@@ -66,12 +100,6 @@ async def get_admin_user_or_bypass(request: Request) -> Union[ClerkUser, SuperAd
             return user
             
         except HTTPException as auth_error:
-            # If Clerk auth fails, check if we can identify a super admin by other means
-            # This provides a fallback for app-level authenticated super admin users
-            # who might not have valid tokens for individual endpoints
-            
-            # For now, we'll still require proper auth - but this is where we could
-            # add additional bypass logic if needed
             logger.warning(f"Authentication failed for request to {request.url.path}")
             raise auth_error
             

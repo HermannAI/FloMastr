@@ -125,6 +125,29 @@ def get_normalized_user_context(user) -> dict:
         "user_id": normalized_id,
         "original_user_id": original_id,
         "is_super_admin": is_super_admin(user),  # Use the new centralized function
-        "is_normalized": normalized_id != original_id,
-        "auth_mode": mode.value
+        "is_normalized": normalized_id != original_id
     }
+
+
+def is_super_admin_email_simple(email: str) -> bool:
+    """
+    SIMPLIFIED super admin check - just check email against environment variable.
+    
+    This function provides a simple way to check if an email is a super admin
+    without requiring any user object or complex authentication.
+    
+    Args:
+        email: Email address to check
+        
+    Returns:
+        True if the email is in SUPER_ADMIN_EMAILS, False otherwise
+    """
+    if not email:
+        return False
+    
+    super_admin_emails_str = os.getenv("SUPER_ADMIN_EMAILS", "")
+    if not super_admin_emails_str:
+        return False
+    
+    super_admin_emails = [e.strip().lower() for e in super_admin_emails_str.split(',') if e.strip()]
+    return email.lower().strip() in super_admin_emails
