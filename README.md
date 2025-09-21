@@ -170,17 +170,27 @@ VITE_API_BASE_URL=http://localhost:8000
 4. **Super admin access**: Use `hermann@changemastr.com` for admin dashboard access
 5. **Dependency issues**: Rebuild containers with `docker-compose up --build` if dependencies change
 
-### **🔐 Authentication & Super Admin Access**
+### **🔐 Authentication & Super Admin Access - SIMPLIFIED APPROACH**
 
-**Super Admin Configuration:**
-- ✅ **Configured Emails**: `hermann@changemastr.com`, `service@changemastr.com`
-- ✅ **Tenant Resolution API**: `/routes/resolve-tenant` properly identifies super admins
-- ✅ **Admin Dashboard Routing**: Super admins automatically redirected to `/admin-dashboard`
-- ✅ **API Dependencies**: All required packages installed (`python-multipart`, `pydantic[email]`)
+**Simplified Super Admin Configuration:**
+- ✅ **Configured Emails**: `hermann@changemastr.com`, `service@changemastr.com` (via `SUPER_ADMIN_EMAILS` env var)
+- ✅ **Email-Based Access**: Simple email verification for all admin endpoints
+- ✅ **Direct API Access**: All admin routes bypass complex authentication
+- ✅ **Simplified Security**: Super admin helpers in `backend/main.py` handle access control
+
+**Key Simplification Changes:**
+- **Backend**: Removed complex auth dependencies, added simple super admin helper functions
+- **Frontend**: AuthMiddleware bypasses auth for admin routes (`authRequired: false`)
+- **API Client**: Simplified security worker includes user email in `X-User-Email` header
+- **Route Access**: All admin endpoints use `check_super_admin_access(request)` function
 
 **Testing Super Admin Access:**
 ```bash
-# Test tenant resolution API
+# Test super admin endpoint directly
+curl -X GET "http://localhost:8000/routes/users?email=hermann@changemastr.com" \
+  -H "X-User-Email: hermann@changemastr.com"
+
+# Test tenant resolution (frontend proxy)
 curl "http://localhost:5173/routes/resolve-tenant?email=hermann%40changemastr.com"
 # Expected response: {"tenant_slug":null,"tenant_name":"Super Admin","is_super_admin":true,"found":true}
 
@@ -189,6 +199,16 @@ curl "http://localhost:5173/routes/resolve-tenant?email=hermann%40changemastr.co
 # 2. Login with hermann@changemastr.com
 # 3. Should automatically redirect to admin dashboard (not generic dashboard)
 ```
+
+**Super Admin Endpoints Available:**
+- `GET /routes/users` - List all users (mock data currently)
+- `POST /routes/users/roles` - Update user roles  
+- All existing admin endpoints with simplified access control
+
+**Technical Implementation:**
+- `backend/main.py`: Contains `is_super_admin_email()`, `check_super_admin_access()` functions
+- `frontend/src/brain/index.ts`: Simplified security worker with email header
+- `frontend/src/components/AuthMiddleware.tsx`: Admin routes bypass authentication
 
 **Frontend-Backend API Communication:**
 - ✅ **Proxy Configuration**: Frontend `/routes/*` requests forward to `backend:8000`

@@ -39,15 +39,15 @@ const ROUTE_CONFIG: Record<string, RouteMetadata> = {
   '/auth/redirect': {},
   '/auth/*': {},
   
-  // Admin routes (super admin only)
-  '/admin-dashboard': { authRequired: true, requireSuperAdmin: true },
-  '/admin-policies': { authRequired: true, requireSuperAdmin: true },
-  '/admin-provisioning': { authRequired: true, requireSuperAdmin: true },
-  '/admin-tenants': { authRequired: true, requireSuperAdmin: true },
-  '/admin-users': { authRequired: true, requireSuperAdmin: true },
-  '/admin-waba-templates': { authRequired: true, requireSuperAdmin: true },
+  // Admin routes (super admin access - no auth required for super admins)
+  '/admin-dashboard': { authRequired: false, requireSuperAdmin: true }, // Super admin bypass
+  '/admin-policies': { authRequired: false, requireSuperAdmin: true },   // Super admin bypass
+  '/admin-provisioning': { authRequired: false, requireSuperAdmin: true }, // Super admin bypass
+  '/admin-tenants': { authRequired: false, requireSuperAdmin: true },    // Super admin bypass
+  '/admin-users': { authRequired: false, requireSuperAdmin: true },      // Super admin bypass
+  '/admin-waba-templates': { authRequired: false, requireSuperAdmin: true }, // Super admin bypass
   
-  // Tenant routes (authenticated users)
+  // Tenant routes (authenticated users - but super admins bypass auth)
   '/dashboard': { authRequired: true },
   '/hitl-tasks': { authRequired: true },
   '/settings': { authRequired: true },
@@ -520,8 +520,14 @@ const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
     );
   }
 
-  // Check authentication requirement
+  // Check authentication requirement - but allow super admins to bypass
   if (routeMetadata.authRequired && !isAuthenticated) {
+    // SUPER ADMIN BYPASS: If user is a super admin, allow access even without full auth
+    if (isSuperAdmin) {
+      console.log('Super admin bypassing authentication requirement for:', location.pathname);
+      return <>{children}</>;
+    }
+
     // Don't redirect if user is on Clerk auth routes (including MFA)
     if (location.pathname.startsWith('/login/') || location.pathname.startsWith('/sign-in/') || location.pathname.startsWith('/sign-up/')) {
       console.log('Allowing access to Clerk auth route:', location.pathname);
@@ -534,8 +540,16 @@ const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Check super admin requirement
+  // Check super admin requirement - but this is now just informational since we bypass auth above
   if (routeMetadata.requireSuperAdmin && !isSuperAdmin) {
+    // If we get here and the user isn't authenticated, it means they need to login to check super admin status
+    if (!isAuthenticated) {
+      // Store current path for redirect after login
+      localStorage.setItem('dtbn-login-next', location.pathname + location.search);
+      console.log('Redirecting to login to check super admin status:', location.pathname);
+      return <Navigate to="/login" replace />;
+    }
+    
     toast.error('Access denied: Super admin privileges required');
     return <Navigate to="/" replace />;
   }

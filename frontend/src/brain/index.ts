@@ -9,6 +9,14 @@ declare global {
       session?: {
         getToken: () => Promise<string | null>;
       };
+      user?: {
+        primaryEmailAddress?: {
+          emailAddress: string;
+        };
+        emailAddresses?: Array<{
+          emailAddress: string;
+        }>;
+      };
     };
   }
 }
@@ -82,79 +90,43 @@ const constructClient = () => {
       return fetch(url, options);
     },
     securityWorker: async () => {
-      // Try to get JWT token from Clerk
+      // SIMPLIFIED: Just try to get user email and token from Clerk
       try {
-        console.log('🔍 SECURITY WORKER: Starting token retrieval...');
+        let userEmail = '';
+        let token = null;
         
-        // First check if Clerk is available globally and has the correct API
-        if (window.Clerk && typeof window.Clerk.session?.getToken === 'function') {
-          console.log('🔍 SECURITY WORKER: Clerk object found, attempting to get token...');
-          try {
-            const token = await window.Clerk.session.getToken();
-            console.log('🔍 SECURITY WORKER: Token retrieved:', token ? 'SUCCESS' : 'NULL', token ? `(${token.substring(0, 20)}...)` : '');
-            
-            if (token) {
-              console.log('✅ SECURITY WORKER: Using Clerk session token from global Clerk object');
-              return {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              };
-            } else {
-              console.log('❌ SECURITY WORKER: Clerk session.getToken() returned null');
-            }
-          } catch (error) {
-            console.error('❌ SECURITY WORKER: Error getting token from Clerk session:', error);
+        // Get user info from Clerk if available
+        if (window.Clerk) {
+          // Get user email
+          if (window.Clerk.user) {
+            userEmail = window.Clerk.user.primaryEmailAddress?.emailAddress || 
+                       window.Clerk.user.emailAddresses?.[0]?.emailAddress || '';
           }
-        } else {
-          console.log('❌ SECURITY WORKER: Clerk not available or missing session.getToken method');
-          console.log('   window.Clerk exists:', !!window.Clerk);
-          console.log('   window.Clerk.session exists:', !!(window.Clerk?.session));
-          console.log('   getToken method exists:', typeof window.Clerk?.session?.getToken === 'function');
-        }
-        
-        // Fallback: try to get from localStorage (Clerk sometimes stores tokens there)
-        console.log('🔍 SECURITY WORKER: Trying fallback token sources...');
-        const clerkToken = localStorage.getItem('clerk-token') || 
-                          localStorage.getItem('__clerk_token') ||
-                          localStorage.getItem('clerk-session-token') ||
-                          localStorage.getItem('__clerk_session_token') ||
-                          sessionStorage.getItem('clerk-token') ||
-                          sessionStorage.getItem('__clerk_token');
-        
-        if (clerkToken) {
-          console.log('✅ SECURITY WORKER: Using Clerk token from localStorage/sessionStorage');
-          return {
-            headers: {
-              Authorization: `Bearer ${clerkToken}`,
-            },
-          };
-        } else {
-          console.log('❌ SECURITY WORKER: No token found in fallback storage');
-        }
-        
-        // Another fallback: try to get from cookies directly
-        const cookies = document.cookie.split(';');
-        console.log('🔍 SECURITY WORKER: Checking cookies for auth tokens...');
-        for (const cookie of cookies) {
-          const [name, value] = cookie.trim().split('=');
-          if (name.includes('clerk') || name.includes('session') || name.includes('jwt')) {
-            console.log(`🔍 SECURITY WORKER: Found potential auth cookie: ${name} (length: ${value?.length || 0})`);
-            if (value && value.length > 10) { // Basic check for valid token
-              console.log('✅ SECURITY WORKER: Using token from cookie');
-              return {
-                headers: {
-                  Authorization: `Bearer ${value}`,
-                },
-              };
+          
+          // Get token
+          if (window.Clerk.session?.getToken) {
+            try {
+              token = await window.Clerk.session.getToken();
+            } catch (error) {
+              console.log('Could not get Clerk token:', error);
             }
           }
         }
         
-        console.log('❌ SECURITY WORKER: No authentication token found anywhere');
-        return { headers: {} };
+        // Build headers - always include email for super admin check
+        const headers: any = {};
+        if (userEmail) {
+          headers['X-User-Email'] = userEmail;
+        }
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        console.log('🔍 Security Worker - Headers:', { hasEmail: !!userEmail, hasToken: !!token });
+        return { headers };
+        
       } catch (error) {
-        console.error('❌ SECURITY WORKER: Error getting Clerk token:', error);
+        console.error('Security worker error:', error);
         return { headers: {} };
       }
     },
