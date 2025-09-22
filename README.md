@@ -2,6 +2,32 @@
 
 **The Relational AI Assistant for WhatsApp Business**
 
+## 🚀 **Latest Updates - December 2025**
+
+### **✅ Complete Tenant Authentication System**
+- **Tenant User Authentication**: Full authentication system for non-admin tenant users
+- **JWT Processing**: Enhanced Clerk JWT token processing with email fallback support
+- **HITL Tasks Integration**: Working HITL (Human-in-the-Loop) tasks system with tenant isolation
+- **Database Updates**: Tenant memberships aligned with Clerk user IDs for proper authorization
+
+### **🎨 Consistent UI/UX Architecture** 
+- **Shared Layout Component**: All tenant pages now use consistent header/footer layout
+- **shadcn/ui Components**: Complete component library with table, select, separator, skeleton
+- **Tenant-Aware Navigation**: Header navigation dynamically adapts for admin vs tenant users
+- **Professional Branding**: Consistent FloMastr branding and legal footer across all pages
+
+### **🏗️ Clean Tenant Routing Architecture**
+- **Tenant Slug Structure**: All tenant pages enforce `/:tenantSlug/page` URL pattern
+- **Subdomain Support**: Architecture supports `tenant.flomastr.com/page` subdomain routing
+- **Route Cleanup**: Removed direct tenant routes, enforcing proper tenant isolation
+- **Navigation Consistency**: All tenant navigation uses tenant-prefixed paths
+
+### **🔧 Technical Improvements**
+- **FastAPI Dependencies**: Fixed incorrect dependency injection patterns causing 500 errors
+- **CSS Animations**: Added `tailwindcss-animate` for proper component animations
+- **Development Experience**: Hot reloading, error handling, and debugging improvements
+- **API Documentation**: Comprehensive endpoint documentation with authentication patterns
+
 ## GitHub Codespaces Deployment
 
 This application is designed for containerized deployment using Docker and Docker Compose, with full support for GitHub Codespaces.
@@ -239,7 +265,18 @@ curl "http://localhost:8000/test-super-admin?email=hermann@changemastr.com"
 - `GET /test-super-admin` - Debug endpoint to verify super admin detection
 - All existing admin endpoints with simplified access control
 
-**Recent Critical Fixes (Sept 2025):**
+**Recent Critical Fixes (December 2025):**
+- ✅ **Tenant Slug Architecture**: Enforced consistent `/:tenantSlug/page` URL structure for all tenant pages
+- ✅ **UI Component System**: Added complete shadcn/ui component library (table, select, separator, skeleton)
+- ✅ **CSS Animations**: Fixed `tailwindcss-animate` dependency for proper component animations
+- ✅ **FastAPI Dependencies**: Corrected incorrect `AuthorizedUser = Depends()` patterns causing 500 errors
+- ✅ **Shared Layout Component**: All tenant pages now use consistent header/footer with professional branding
+- ✅ **Header Navigation**: Updated navigation to use tenant-prefixed paths for proper routing
+- ✅ **Route Cleanup**: Removed direct tenant routes, enforcing tenant isolation through URL structure
+- ✅ **Workflows Page**: Fixed 500 errors and added proper skeleton loading states
+- ✅ **HITL Tasks Integration**: Complete tenant-aware HITL tasks system with proper authentication
+
+**Previous Fixes (September 2025):**
 - ✅ **Real User Data**: Fixed admin users page to show real database users instead of mock data
 - ✅ **API Routing**: Resolved conflict between mock /routes/users endpoint and real user_management API
 - ✅ **Container Deployment**: Fixed Docker build cache preventing code updates from loading
