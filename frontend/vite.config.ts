@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import fs from 'fs';
+
+// Support for GitHub Codespaces
+const isCodespace = !!process.env.CODESPACE_NAME;
+const codespaceBaseUrl = isCodespace ? `https://${process.env.CODESPACE_NAME}-8000.app.github.dev` : undefined;
 
 const buildVariables = () => {
-	const apiUrl = process.env.VITE_API_URL || "http://localhost:8000";
+	// Use Codespaces URL when in Codespaces environment, otherwise fall back to env var or default
+	const apiUrl = process.env.VITE_API_BASE_URL || codespaceBaseUrl || "http://localhost:8000";
 
 	const defines: Record<string, string> = {
 		__APP_ID__: JSON.stringify("flo-mastr"),
@@ -40,15 +44,10 @@ export default defineConfig({
 	},
 	server: {
 		host: true,
-		// Note: historyApiFallback is handled automatically by Vite for SPA routing
-		// Temporarily disable HTTPS to test
-		// https: {
-		// 	key: fs.readFileSync(path.resolve(__dirname, '.certs/key.pem')),
-		// 	cert: fs.readFileSync(path.resolve(__dirname, '.certs/cert.pem')),
-		// },
+		// Removed HTTPS settings that were used locally
 		proxy: {
 			'/api': {
-				target: 'http://backend:8000',  // Use Docker service name
+				target: isCodespace ? 'http://localhost:8000' : 'http://backend:8000',
 				changeOrigin: true,
 				secure: false, // Critical for HTTPS→HTTP
 				rewrite: (path) => {
@@ -66,7 +65,7 @@ export default defineConfig({
 				}
 			},
 			'/routes': {
-				target: 'http://backend:8000',  // Use Docker service name
+				target: isCodespace ? 'http://localhost:8000' : 'http://backend:8000',
 				changeOrigin: true,
 				secure: false,
 				configure: (proxy, options) => {

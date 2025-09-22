@@ -1,9 +1,6 @@
 #!/bin/bash
 
-corepack enable
+# Install npm dependencies
+npm install
 
-yarn set version stable
-
-yarn install 
-
-yarn dlx @yarnpkg/sdks vscode
+echo "Frontend dependencies installed successfully"

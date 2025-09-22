@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Clock, User, AlertCircle, CheckCircle, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import brain from 'brain';
 import { useTenant } from 'utils/TenantProvider';
-import type { HitlTask } from 'types';
+import type { HitlTask } from '../brain/data-contracts';
 
 // Fetch tasks from the API
 const fetchTasks = async (): Promise<HitlTask[]> => {
@@ -33,7 +34,7 @@ const HitlTasks: React.FC = () => {
     }
   }, [tenantSlug]);
 
-  const { data: tasks, isLoading: loading } = useQuery({
+  const { data: tasks = [], isLoading: loading, error } = useQuery({
     queryKey: ['hitl-tasks'],
     queryFn: fetchTasks,
     refetchOnWindowFocus: false,
@@ -91,7 +92,15 @@ const HitlTasks: React.FC = () => {
 
       <Card>
         <CardContent>
-          {tasks.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Loading tasks...
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-500">
+              Error loading tasks: {error instanceof Error ? error.message : 'Unknown error'}
+            </div>
+          ) : tasks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No tasks found. Create a task to get started.
             </div>

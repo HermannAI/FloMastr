@@ -4,17 +4,17 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Enable corepack for Yarn 4 support
-RUN corepack enable
+# Set Node.js memory options to prevent OOM in Codespaces
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # Copy package.json first (for better caching)
 COPY package.json ./
 
-# Copy yarn.lock if it exists, otherwise skip
-COPY yarn.loc[k] ./
+# Copy package-lock.json if it exists
+COPY package-lock.json* ./
 
-# Install dependencies
-RUN yarn install
+# Install dependencies with npm
+RUN npm install
 
 # Copy the rest of the application
 COPY . .
@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 5173
 
 # Start the development server with host binding for Docker
-CMD ["yarn", "dev", "--host", "0.0.0.0"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

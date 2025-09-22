@@ -6,7 +6,6 @@ node_modules/
 .yarn/install-state.gz
 .yarn/build-state.yml
 .yarn/unplugged/
-.yarn/sdks/
 
 # Environment variables
 .env
@@ -20,8 +19,7 @@ dist/
 build/
 *.log
 
-# IDE
-.vscode/settings.json
+# IDE (keeping .vscode/settings.json for Codespaces compatibility)
 .idea/
 
 # OS
@@ -41,3 +39,9 @@ __pycache__/
 # Temporary files
 *.tmp
 *.temp
+
+# Docker
+.dockerignore
+
+# Codespaces
+.devcontainer/docker-compose.yml

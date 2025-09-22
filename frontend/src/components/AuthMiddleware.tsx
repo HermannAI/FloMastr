@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
@@ -106,7 +106,7 @@ interface AuthProviderProps {
 }
 
 // Auth Provider Component
-const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+const AuthProvider = ({ children }: AuthProviderProps) => {
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
   const { isSignedIn } = useClerkAuth();
   
@@ -125,6 +125,24 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checked: boolean;
     timestamp: number;
   }>({ status: false, checked: false, timestamp: 0 });
+
+  // Prevent concurrent API calls
+  const [ongoingRequests, setOngoingRequests] = useState<{
+    tenantResolution: Promise<any> | null;
+    superAdminCheck: Promise<any> | null;
+  }>({
+    tenantResolution: null,
+    superAdminCheck: null
+  });
+
+  // Cache for tenant resolution to avoid repeated calls
+  const [tenantCache, setTenantCache] = useState<{
+    [email: string]: {
+      tenantSlug: string | null;
+      timestamp: number;
+      isSuperAdmin: boolean;
+    }
+  }>({});
 
   // Check if super admin status needs refresh (cache for session)
   const needsSuperAdminCheck = (user: any) => {
@@ -312,10 +330,26 @@ interface RouteProtectionProps {
   children: ReactNode;
 }
 
-const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
+const RouteProtection = ({ children }: RouteProtectionProps) => {
   const { isLoading, isAuthenticated, isSuperAdmin, error, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Prevent concurrent API calls and cache results
+  const [ongoingRequests, setOngoingRequests] = useState<{
+    tenantResolution: Promise<any> | null;
+  }>({
+    tenantResolution: null
+  });
+
+  // Cache for tenant resolution to avoid repeated calls
+  const [tenantCache, setTenantCache] = useState<{
+    [email: string]: {
+      tenantSlug: string | null;
+      timestamp: number;
+      isSuperAdmin: boolean;
+    }
+  }>({});
 
   const handlePostLoginRedirect = async () => {
     try {
@@ -366,8 +400,25 @@ const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
 
       console.log('User is not super admin, resolving tenant...');
       // For regular users, try to resolve tenant
-      const tenantSlug = await resolveUserTenant();
-      console.log('Resolved tenant slug:', tenantSlug);
+      const { tenantSlug, isSuperAdmin: resolvedSuperAdmin } = await resolveUserTenant();
+      console.log('Resolved tenant slug:', tenantSlug, 'Super admin status:', resolvedSuperAdmin);
+
+      // If the tenant resolution shows the user is actually a super admin, handle that
+      if (resolvedSuperAdmin && !isUserSuperAdmin) {
+        console.log('Tenant resolution revealed user is super admin, redirecting accordingly');
+        isUserSuperAdmin = true;
+        // Redirect to admin dashboard
+        const isDevelopment = import.meta.env.DEV || 
+                             window.location.hostname === 'localhost' || 
+                             window.location.hostname === '127.0.0.1';
+        
+        if (isDevelopment) {
+          navigate('/admin-dashboard', { replace: true });
+        } else {
+          window.location.href = 'https://app.flomastr.com';
+        }
+        return;
+      }
 
       if (tenantSlug) {
         // Redirect to tenant-specific dashboard
@@ -388,45 +439,93 @@ const RouteProtection: React.FC<RouteProtectionProps> = ({ children }) => {
     }
   };
 
-  const resolveUserTenant = async (): Promise<string | null> => {
+  const resolveUserTenant = async (): Promise<{ tenantSlug: string | null; isSuperAdmin: boolean }> => {
     try {
       // Use the user from component scope instead of calling useAuth hook
       if (!user?.primaryEmailAddress?.emailAddress) {
         console.log('No user email found for tenant resolution');
-        return null;
+        return { tenantSlug: null, isSuperAdmin: false };
       }
 
       const email = user.primaryEmailAddress.emailAddress;
       console.log('Resolving tenant for email:', email);
 
-      // Call tenant resolution API with correct endpoint
+      // Check cache first (cache for 5 minutes)
+      const cachedResult = tenantCache[email];
+      if (cachedResult && (Date.now() - cachedResult.timestamp) < 5 * 60 * 1000) {
+        console.log('Using cached tenant resolution:', cachedResult);
+        return { tenantSlug: cachedResult.tenantSlug, isSuperAdmin: cachedResult.isSuperAdmin };
+      }
+
+      // Check if there's already an ongoing request for this user
+      if (ongoingRequests.tenantResolution) {
+        console.log('Waiting for ongoing tenant resolution request...');
+        return await ongoingRequests.tenantResolution;
+      }
+
+      // Create new request
       const apiUrl = `/routes/resolve-tenant?email=${encodeURIComponent(email)}`;
       console.log('Calling tenant resolution API:', apiUrl);
 
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const requestPromise = (async () => {
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            // Add timeout to prevent hanging requests
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          });
 
-      console.log('Tenant resolution response status:', response.status);
+          console.log('Tenant resolution response status:', response.status);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Tenant resolution data:', data);
-        const tenantSlug = data.tenant_slug || null;
-        console.log('Resolved tenant slug:', tenantSlug);
-        return tenantSlug;
-      } else {
-        console.log('Tenant resolution failed with status:', response.status);
-        const errorText = await response.text();
-        console.log('Error response:', errorText);
-        return null;
-      }
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Tenant resolution data:', data);
+            
+            const result = {
+              tenantSlug: data.tenant_slug || null,
+              isSuperAdmin: data.is_super_admin || false
+            };
+
+            // Cache the result
+            setTenantCache(prev => ({
+              ...prev,
+              [email]: {
+                ...result,
+                timestamp: Date.now()
+              }
+            }));
+
+            return result;
+          } else {
+            console.log('Tenant resolution failed with status:', response.status);
+            const errorText = await response.text();
+            console.log('Error response:', errorText);
+            return { tenantSlug: null, isSuperAdmin: false };
+          }
+        } catch (error) {
+          // Handle AbortError specifically
+          if (error.name === 'AbortError') {
+            console.log('Tenant resolution request was aborted (timeout or cancellation)');
+          } else {
+            console.error('Error in tenant resolution request:', error);
+          }
+          return { tenantSlug: null, isSuperAdmin: false };
+        } finally {
+          // Clear the ongoing request
+          setOngoingRequests(prev => ({ ...prev, tenantResolution: null }));
+        }
+      })();
+
+      // Store the ongoing request
+      setOngoingRequests(prev => ({ ...prev, tenantResolution: requestPromise }));
+
+      return await requestPromise;
     } catch (error) {
       console.error('Error resolving tenant:', error);
-      return null;
+      return { tenantSlug: null, isSuperAdmin: false };
     }
   };
 

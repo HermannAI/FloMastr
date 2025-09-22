@@ -1,0 +1,11 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://doadmin:AVNS_60oX1gbkyUjUxv2y63s@db-postgresql-blr1-flomastr-do-user-24629085-0.g.db.ondigitalocean.com:25060/defaultdb?sslmode=require
+      - SUPER_ADMIN_EMAILS=hermann@changemastr.com,service@changemastr.com
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped

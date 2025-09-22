@@ -23,8 +23,14 @@ declare global {
 import { useAuth } from '@clerk/clerk-react';
 
 const isDeployedToCustomApiPath = API_PREFIX_PATH !== API_PATH;
+const isCodespace = typeof window !== 'undefined' && window.location.hostname.includes('.app.github.dev');
 
 const constructBaseUrl = (): string => {
+  // GitHub Codespaces: Use the API_URL directly
+  if (isCodespace) {
+    return '';  // Use relative paths with Vite proxy in Codespaces
+  }
+
   if (isDeployedToCustomApiPath) {
     // Access via origin domain where webapp was hosted with given api prefix path
     const domain = window.location.origin || `https://${API_HOST}`;
@@ -67,7 +73,9 @@ const constructClient = () => {
       }
 
       // In development mode, prepend /api to all requests to match Vite proxy configuration
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      if (window.location.hostname === 'localhost' || 
+          window.location.hostname === '127.0.0.1' || 
+          isCodespace) {
         // Extract pathname from full URL if needed
         let pathToCheck = urlString;
         if (urlString.startsWith('http://') || urlString.startsWith('https://')) {
@@ -83,6 +91,7 @@ const constructClient = () => {
         // Only add /api prefix if the path starts with /routes and doesn't already start with /api
         if (pathToCheck.startsWith('/routes') && !pathToCheck.startsWith('/api')) {
           const modifiedUrl = `/api${pathToCheck}`;
+          console.log(`[Brain Client] Routing to proxy: ${pathToCheck} → ${modifiedUrl}`);
           return fetch(modifiedUrl, options);
         }
       }

@@ -9,7 +9,7 @@ import uuid
 import json
 import asyncpg
 from app.auth import AuthorizedUser
-from app.libs.tenant_auth import TenantAuthorizedUser, TenantUserDep
+from app.libs.tenant_auth import TenantAuthorizedUser, TenantUserDep, TenantUserByEmailDep
 from app.libs.db_connection import get_db_connection
 
 router = APIRouter()
@@ -90,7 +90,7 @@ class ResolveTaskResponse(BaseModel):
 
 
 @router.get("/tasks")
-async def get_hitl_tasks_legacy(tenant_user: TenantAuthorizedUser = TenantUserDep):
+async def get_hitl_tasks_legacy(tenant_user: TenantAuthorizedUser = TenantUserByEmailDep):
     """Legacy endpoint for HITL tasks"""
     conn = await get_db_connection()
     try:
@@ -112,7 +112,7 @@ async def get_hitl_tasks_legacy(tenant_user: TenantAuthorizedUser = TenantUserDe
     summary="Get Active HITL Tasks",
     description="Retrieves active HITL tasks for the authenticated tenant, sorted by creation date.",
 )
-async def get_hitl_tasks(tenant_user: TenantAuthorizedUser = TenantUserDep):
+async def get_hitl_tasks(tenant_user: TenantAuthorizedUser = TenantUserByEmailDep):
     conn = await get_db_connection()
     try:
         query = """

@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Clock, User, CheckCircle, AlertCircle } from 'lucide-react';
 import brain from 'brain';
 import { useTenant } from 'utils/TenantProvider';
-import type { HitlTaskDetail } from 'types';
+import type { HitlTaskDetail } from '../brain/data-contracts';
 
 // Fetch task detail from the API
 const fetchTaskDetail = async (taskId: string): Promise<HitlTaskDetail> => {

@@ -2,48 +2,35 @@
 
 **The Relational AI Assistant for WhatsApp Business**
 
-## Docker-Only Deployment
+## GitHub Codespaces Deployment
 
-This application is designed for containerized deployment using Docker and Docker Compose. All development and production environments run in containers.
+This application is designed for containerized deployment using Docker and Docker Compose, with full support for GitHub Codespaces.
 
-### Quick Start
+### Quick Start (GitHub Codespaces)
 
 **Prerequisites:**
-- Docker and Docker Compose installed
-- Environment variables configured (see Environment Configuration section)
+- GitHub Codespaces enabled on your account
 
 **Start Application:**
 ```bash
-# Start entire application stack
-docker-compose up
+# Quick start script (recommended)
+./codespaces-start.sh
 
-# Start in background
+# OR manual startup:
 docker-compose up -d
 
 # View logs
 docker-compose logs -f backend
 docker-compose logs -f frontend
+```
 
-# Stop application
-docker-compose **🐳 Docker-First Architecture - IMPLEMENTED:**
-- ✅ **Problem**: Platform-specific development friction causing endless debugging sessions.
-- ✅ **Root Cause**: Inconsistent local environments (Python, Node.js), shell-specific script issues, and OS-level networking differences.
-- ✅ **Solution**: Docker containerization eliminates all platform-specific issues.
-- ✅ **Result**: Universal development environment with one-command startup.```
+**Access Services:**
+- Backend API: https://YOUR_CODESPACE_NAME-8000.app.github.dev/docs
+- Backend Health: https://YOUR_CODESPACE_NAME-8000.app.github.dev/health
+- Frontend: https://YOUR_CODESPACE_NAME-5173.app.github.dev
+- Tenant Resolution: https://YOUR_CODESPACE_NAME-5173.app.github.dev/routes/resolve-tenant?email=hermann@changemastr.com
 
-**Verify Setup:**
-1. Backend API: `http://localhost:8000/docs` - FastAPI documentation
-2. Backend Health: `http://localhost:8000/health` - Should return {"status": "healthy"}
-3. Frontend: `http://localhost:5173` - React application
-4. Tenant Resolution: `http://localhost:5173/routes/resolve-tenant?email=hermann@changemastr.com` - Should return super admin status
-5. Super Admin Login: Use `hermann@changemastr.com` to access admin dashboard
-
-**Key Benefits of Container Deployment:**
-- Consistent environment across all platforms
-- No local Python/Node.js environment management needed
-- Simplified startup process
-- Hot reloading for development
-- Easy scaling and deployment
+### Docker-Only Deployment (Local Development)
 
 ### Container Architecture
 
@@ -260,6 +247,38 @@ curl "http://localhost:8000/test-super-admin?email=hermann@changemastr.com"
 - ✅ **Frontend SecurityWorker**: Fixed automatic X-User-Email header injection for super admin bypass
 - ✅ **Authentication Flow**: Complete end-to-end super admin bypass working (401 → 200 responses)
 - ✅ **Hot Reloading**: Resolved main.py syntax errors causing container startup failures
+- ✅ **Tenant Authentication**: Complete tenant user authentication system for non-admin users
+- ✅ **JWT Authentication**: Fixed Clerk JWT token processing with email fallback support
+- ✅ **HITL Tasks System**: Created active_hitl_tasks table and working tenant-aware endpoints
+- ✅ **Frontend UI Components**: Added missing table, select, separator components for HITL tasks page
+- ✅ **Database Migration**: Updated tenant memberships with correct Clerk user IDs
+
+### **🔐 Tenant User Authentication - NEW**
+
+**Tenant User Access (Non-Admin):**
+- ✅ **Tenant Resolution**: Email-based tenant lookup (e.g., `hermann@whappstream.com` → `whappstream` tenant)
+- ✅ **JWT Processing**: Clerk JWT token validation with X-User-Email header fallback
+- ✅ **User ID Mapping**: Automatic tenant membership resolution by Clerk user ID
+- ✅ **Tenant Context**: All API endpoints include proper tenant context for data isolation
+
+**Testing Tenant User Access:**
+```bash
+# Test tenant user authentication (HITL tasks example)
+curl -X GET "http://localhost:8000/routes/api/v1/tasks" \
+  -H "Authorization: Bearer CLERK_JWT_TOKEN" \
+  -H "X-User-Email: hermann@whappstream.com"
+# Expected: Returns HITL tasks for whappstream tenant (200 response)
+
+# Frontend URL for tenant users:
+https://YOUR_CODESPACE-5173.app.github.dev/whappstream/hitl-tasks
+# Should load successfully with proper tenant authentication
+```
+
+**Tenant Authentication Architecture:**
+- **Backend**: `TenantUserByEmailDep` dependency for tenant-aware endpoints
+- **Frontend**: Clerk authentication with automatic email header injection
+- **Database**: Tenant memberships linked to Clerk user IDs for proper authorization
+- **UI**: Complete HITL tasks interface with table, filters, and tenant-specific data
 
 **Technical Implementation:**
 - `backend/main.py`: Contains `is_super_admin_email()`, `check_super_admin_access()` functions
@@ -309,6 +328,54 @@ POST /routes/tools/convert/url-to-md - Convert URLs to markdown
 POST /routes/tools/embed/knowledge - Embed knowledge content
 ```
 
+## 🏗️ Technical Architecture
+
+### **Multi-Tenant Authentication Patterns**
+```
+Super Admin Access:
+- X-User-Email header OR ?email= query parameter
+- Bypass tenant restrictions, see all tenant data
+- Access to admin provisioning endpoints
+
+Tenant User Access:  
+- Clerk JWT token authentication via Authorization header
+- Tenant resolution by email domain mapping
+- Restricted to tenant-specific data only
+```
+
+### **Backend API Structure**
+```
+backend/app/apis/{module}/
+├── __init__.py        # FastAPI router with endpoints
+├── models.py          # Pydantic request/response models  
+├── dependencies.py    # Auth dependencies (TenantDep, etc.)
+└── database.py        # Database query functions
+
+Common Dependencies:
+- TenantDep: Resolve tenant from path (/tenant/{slug})
+- TenantUserByEmailDep: Resolve tenant by authenticated email
+- SuperAdminDep: Require super admin access
+```
+
+### **Frontend Architecture**
+```
+frontend/src/
+├── brain/             # API client (auto-generated from OpenAPI)
+├── components/ui/     # shadcn/ui components
+├── pages/            # Route components
+├── hooks/            # Custom React hooks
+└── lib/              # Utilities and configurations
+
+Authentication Flow:
+1. Clerk handles login/logout
+2. JWT token sent in Authorization header  
+3. Backend validates token and extracts email
+4. Tenant resolved by email domain mapping
+5. User restricted to tenant-specific resources
+```
+
+---
+
 ### **🏢 Tenant Management**
 ```
 GET /routes/tenants - List all tenants
@@ -350,13 +417,26 @@ POST /routes/knowledge/{tenant_slug}/index - Upsert knowledge index
 
 > 📖 **For detailed Business Brain documentation** including RAG architecture, ingestion workflows, and database schemas, see **[BUSINESS_BRAIN.md](./BUSINESS_BRAIN.md)**
 
-### **👥 Human-in-the-Loop Tasks**
+### **👥 Human-in-the-Loop Tasks (HITL) - ✅ WORKING**
 ```
-GET /routes/tasks - Get HITL tasks
-GET /routes/tasks/{task_id} - Get specific task
+GET /routes/tasks - Get HITL tasks (legacy endpoint)
+GET /routes/api/v1/tasks - Get active HITL tasks (tenant-aware)
+GET /routes/tasks/{task_id} - Get specific task details
 POST /routes/tasks - Create HITL task  
 POST /routes/tasks/{task_id}/resolve - Resolve HITL task
 ```
+
+**HITL Tasks Features:**
+- ✅ **Tenant Isolation**: Tasks are filtered by authenticated user's tenant
+- ✅ **Database Table**: `active_hitl_tasks` with proper UUID foreign keys
+- ✅ **Frontend Interface**: Complete UI with table, filters, and status badges
+- ✅ **Authentication**: Works with both super admin and tenant user access
+- ✅ **Sample Data**: Includes sample task for testing and development
+
+**Frontend HITL Pages:**
+- `/hitl-tasks` - Main HITL tasks dashboard with filters and search
+- `/hitl-tasks/{taskId}` - Individual task detail view
+- Admin can see all tenant tasks, tenant users see only their own tenant's tasks
 
 ### **⚙️ Platform & System**
 ```

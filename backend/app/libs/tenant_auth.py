@@ -115,7 +115,7 @@ async def require_tenant_membership(
         )
     
     # Get user ID from AuthorizedUser
-    user_id = getattr(user, 'sub', None) or getattr(user, 'id', None)
+    user_id = getattr(user, 'user_id', None) or getattr(user, 'sub', None) or getattr(user, 'id', None)
     
     if not user_id:
         raise HTTPException(
@@ -141,8 +141,96 @@ async def require_tenant_membership(
         membership_role=membership['role']
     )
 
+async def require_tenant_membership_by_email(
+    request: Request,
+    user: AuthorizedUser
+) -> TenantAuthorizedUser:
+    """
+    FastAPI dependency that resolves tenant membership by user email.
+    
+    This is used for endpoints that don't have tenant_slug in the URL path.
+    It finds the tenant by looking up the user's primary tenant membership.
+    
+    Usage in API endpoints:
+    @router.get("/some-endpoint")
+    async def endpoint(tenant_user: TenantAuthorizedUser = Depends(require_tenant_membership_by_email)):
+        # tenant_user.tenant_slug is the user's primary tenant
+        pass
+    """
+    
+    # Get user ID from AuthorizedUser
+    user_id = getattr(user, 'user_id', None) or getattr(user, 'sub', None) or getattr(user, 'id', None)
+    user_email = getattr(user, 'email', None)
+    
+    if not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="User ID not found in authentication token"
+        )
+    
+    # Get user's primary tenant membership (first active membership)
+    conn = await get_db_connection()
+    try:
+        # Check if user has tenant membership (prefer owner role, then any active membership)
+        query = """
+            SELECT 
+                tm.tenant_id, 
+                t.slug as tenant_slug, 
+                tm.role, 
+                tm.status,
+                t.status as tenant_status
+            FROM tenant_memberships tm
+            JOIN tenants t ON tm.tenant_id = t.id
+            WHERE tm.user_id = $1 
+              AND tm.status = 'active'
+              AND t.deleted_at IS NULL
+            ORDER BY 
+              CASE WHEN tm.role = 'owner' THEN 1 
+                   WHEN tm.role = 'admin' THEN 2 
+                   ELSE 3 END,
+              tm.created_at ASC
+            LIMIT 1
+        """
+        
+        membership_row = await conn.fetchrow(query, user_id)
+        
+        if not membership_row:
+            # Fallback: check if user email matches tenant primary_contact_email
+            if user_email:
+                tenant_row = await conn.fetchrow(
+                    "SELECT id, slug FROM tenants WHERE primary_contact_email = $1 AND deleted_at IS NULL",
+                    user_email.lower()
+                )
+                
+                if tenant_row:
+                    membership_row = {
+                        'tenant_id': tenant_row['id'],
+                        'tenant_slug': tenant_row['slug'],
+                        'role': 'owner',
+                        'status': 'active',
+                        'tenant_status': 'active'
+                    }
+        
+        if not membership_row:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Access denied: User does not have membership in any tenant"
+            )
+        
+        # Return enhanced user object with tenant information
+        return TenantAuthorizedUser(
+            user=user,
+            tenant_slug=membership_row['tenant_slug'],
+            tenant_id=membership_row['tenant_id'],
+            membership_role=membership_row['role']
+        )
+        
+    finally:
+        await conn.close()
+
 # Alias for easier imports
 TenantUser = require_tenant_membership
 
-# Create a proper dependency instance to avoid B008 linting error
+# Create proper dependency instances to avoid B008 linting error
 TenantUserDep = Depends(require_tenant_membership)
+TenantUserByEmailDep = Depends(require_tenant_membership_by_email)
