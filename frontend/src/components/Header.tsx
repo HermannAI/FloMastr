@@ -47,11 +47,11 @@ export const Header: React.FC<HeaderProps> = ({ onToggleTheme, isDarkMode }) => 
     { path: '/admin-waba-templates', label: 'WABA Templates', icon: MessageSquare },
   ];
 
-  // Tenant navigation items
+  // Tenant navigation items - use tenant-prefixed paths
   const tenantNavItems = [
-    { path: '/hitl-tasks', label: 'HITL Tasks', icon: Settings },
-    { path: '/settings', label: 'Settings', icon: Settings },
-    { path: '/workflows', label: 'Workflows', icon: Package },
+    { path: `/${tenantSlug || 'tenant'}/hitl-tasks`, label: 'HITL Tasks', icon: Settings },
+    { path: `/${tenantSlug || 'tenant'}/settings`, label: 'Settings', icon: Settings },
+    { path: `/${tenantSlug || 'tenant'}/workflows`, label: 'Workflows', icon: Package },
   ];
 
   const navItems = isSuperAdmin ? adminNavItems : tenantNavItems;
