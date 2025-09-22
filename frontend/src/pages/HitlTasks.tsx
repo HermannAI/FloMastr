@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Clock, User, AlertCircle, CheckCircle, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+import { Layout } from '@/components/Layout';
 import brain from 'brain';
 import { useTenant } from 'utils/TenantProvider';
 import type { HitlTask } from '../brain/data-contracts';
@@ -70,28 +71,18 @@ const HitlTasks: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header - moved outside card to match ContextBuilder layout */}
-      <div className="border-b px-6 py-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img 
-              src="/assets/whappstream-icon.png" 
-              alt="WhappStream" 
-              className="w-12 h-12 object-contain"
-            />
-            <div>
-              <h1 className="text-2xl font-bold">WhappStream Dashboard</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Contextual conversations with your audience
-              </p>
-            </div>
-          </div>
+    <Layout>
+      <div className="space-y-6">
+        {/* Page Title */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">HITL Tasks</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage human-in-the-loop tasks for your workspace
+          </p>
         </div>
-      </div>
 
-      <Card>
-        <CardContent>
+        <Card>
+          <CardContent>
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">
               Loading tasks...
@@ -140,7 +131,8 @@ const HitlTasks: React.FC = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

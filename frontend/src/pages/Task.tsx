@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Clock, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { Layout } from '@/components/Layout';
 import brain from 'brain';
 import { useTenant } from 'utils/TenantProvider';
 import type { HitlTaskDetail } from '../brain/data-contracts';
@@ -44,11 +45,11 @@ const Task: React.FC = () => {
   });
 
   return (
-    <div>
-      <h1>Task Page</h1>
+    <Layout>
+      <h1>Task Detail</h1>
       <p>Task ID: {taskId}</p>
       <p>Tenant Slug: {tenantSlug}</p>
-    </div>
+    </Layout>
   );
 };
 

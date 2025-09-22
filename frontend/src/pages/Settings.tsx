@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Layout } from '@/components/Layout';
 import { toast } from 'sonner';
 import brain from 'brain';
 import { useTenant } from 'utils/TenantProvider';
@@ -59,9 +60,9 @@ export default function Settings() {
   }, [tenantSlug]);
 
   return (
-    <div className="container mx-auto p-6">
+    <Layout>
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
       <p className="text-muted-foreground">Settings page is under development.</p>
-    </div>
+    </Layout>
   );
 }
