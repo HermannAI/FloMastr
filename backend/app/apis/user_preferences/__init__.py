@@ -65,7 +65,7 @@ async def update_user_preferences(
     user_id: str,
     tenant_id: Optional[str],
     prefs_update: UserPreferencesUpdate,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> UserPreferences:
     """Update user preferences"""
     conn = await get_db_connection()
@@ -96,7 +96,7 @@ async def update_user_preferences(
 async def delete_user_preferences(
     user_id: str,
     tenant_id: Optional[str] = None,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ):
     """Delete user preferences"""
     conn = await get_db_connection()
@@ -125,7 +125,7 @@ async def get_user_setting(
     setting_key: str,
     tenant_id: Optional[str] = None,
     default_value: Optional[str] = None,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> Dict[str, Any]:
     """Get a specific setting from user preferences"""
     conn = await get_db_connection()
@@ -158,7 +158,7 @@ async def update_user_setting(
     setting_key: str,
     setting_value: Dict[str, Any],
     tenant_id: Optional[str] = None,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> Dict[str, Any]:
     """Update a specific setting in user preferences"""
     conn = await get_db_connection()

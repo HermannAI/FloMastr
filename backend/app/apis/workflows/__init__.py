@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/workflows", response_model=Workflow)
 async def create_workflow(
     workflow: WorkflowCreate,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> Workflow:
     """Create a new workflow"""
     conn = await get_db_connection()
@@ -47,7 +47,7 @@ async def list_workflows(
     is_active: Optional[bool] = None,
     is_public: Optional[bool] = None,
     category: Optional[str] = None,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> List[Workflow]:
     """List workflows with optional filters"""
     conn = await get_db_connection()
@@ -95,7 +95,7 @@ async def list_workflows(
 @router.get("/workflows/{workflow_id}", response_model=Workflow)
 async def get_workflow(
     workflow_id: str,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> Workflow:
     """Get a specific workflow by ID"""
     conn = await get_db_connection()
@@ -119,7 +119,7 @@ async def get_workflow(
 async def update_workflow(
     workflow_id: str,
     workflow_update: Dict[str, Any],
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> Workflow:
     """Update a workflow"""
     conn = await get_db_connection()
@@ -170,7 +170,7 @@ async def update_workflow(
 @router.delete("/workflows/{workflow_id}")
 async def delete_workflow(
     workflow_id: str,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ):
     """Delete a workflow"""
     conn = await get_db_connection()
@@ -191,7 +191,7 @@ async def get_workflow_executions(
     workflow_id: str,
     limit: int = 50,
     offset: int = 0,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> List[WorkflowExecution]:
     """Get executions for a specific workflow"""
     conn = await get_db_connection()

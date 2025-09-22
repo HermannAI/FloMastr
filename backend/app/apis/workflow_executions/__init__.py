@@ -25,7 +25,7 @@ class WorkflowExecutionUpdate(BaseModel):
 @router.post("/workflow-executions", response_model=WorkflowExecution)
 async def create_workflow_execution(
     execution: WorkflowExecutionCreate,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> WorkflowExecution:
     """Create a new workflow execution record"""
     conn = await get_db_connection()
@@ -61,7 +61,7 @@ async def list_workflow_executions(
     status: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> List[WorkflowExecution]:
     """List workflow executions with optional filters"""
     conn = await get_db_connection()
@@ -109,7 +109,7 @@ async def list_workflow_executions(
 @router.get("/workflow-executions/{execution_id}", response_model=WorkflowExecution)
 async def get_workflow_execution(
     execution_id: str,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> WorkflowExecution:
     """Get a specific workflow execution"""
     conn = await get_db_connection()
@@ -132,7 +132,7 @@ async def get_workflow_execution(
 async def update_workflow_execution(
     execution_id: str,
     execution_update: WorkflowExecutionUpdate,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> WorkflowExecution:
     """Update a workflow execution"""
     conn = await get_db_connection()
@@ -189,7 +189,7 @@ async def get_execution_stats(
     tenant_id: Optional[str] = None,
     workflow_id: Optional[str] = None,
     days: int = 30,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ) -> Dict[str, Any]:
     """Get execution statistics"""
     conn = await get_db_connection()
@@ -239,7 +239,7 @@ async def get_execution_stats(
 @router.delete("/workflow-executions/{execution_id}")
 async def delete_workflow_execution(
     execution_id: str,
-    user: AuthorizedUser = Depends()
+    user: AuthorizedUser
 ):
     """Delete a workflow execution"""
     conn = await get_db_connection()
