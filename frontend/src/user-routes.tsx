@@ -11,7 +11,6 @@ const AdminUsers = lazy(() => import("./pages/AdminUsers.tsx"));
 const AdminWABATemplates = lazy(() => import("./pages/AdminWABATemplates.tsx"));
 const App = lazy(() => import("./pages/App.tsx"));
 const ContextBuilder = lazy(() => import("./pages/ContextBuilder.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const HitlTasks = lazy(() => import("./pages/HitlTasks.tsx"));
 const Login = lazy(() => import("./pages/Login.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
@@ -23,6 +22,7 @@ const WorkflowInstall = lazy(() => import("./pages/WorkflowInstall.tsx"));
 const Workflows = lazy(() => import("./pages/Workflows.tsx"));
 
 export const userRoutes: RouteObject[] = [
+	// Admin routes (no tenant prefix needed)
 	{ path: "/admin-dashboard", element: <AdminDashboard />},
 	{ path: "/admindashboard", element: <AdminDashboard />},
 	{ path: "/admin-policies", element: <AdminPolicies />},
@@ -35,12 +35,9 @@ export const userRoutes: RouteObject[] = [
 	{ path: "/adminusers", element: <AdminUsers />},
 	{ path: "/admin-waba-templates", element: <AdminWABATemplates />},
 	{ path: "/adminwabatemplates", element: <AdminWABATemplates />},
+	
+	// Root and auth routes
 	{ path: "/", element: <App />},
-	{ path: "/dashboard", element: <Dashboard />},
-	{ path: "/context-builder", element: <ContextBuilder />},
-	{ path: "/contextbuilder", element: <ContextBuilder />},
-	{ path: "/hitl-tasks", element: <HitlTasks />},
-	{ path: "/hitltasks", element: <HitlTasks />},
 	{ path: "/login", element: <Login />},
 	{ path: "/login/*", element: <Login />}, // Catch-all for Clerk auth routes like /login/factor-one
 	{ path: "/sign-in", element: <Login />},
@@ -48,20 +45,22 @@ export const userRoutes: RouteObject[] = [
 	{ path: "/sign-up", element: <Login />},
 	{ path: "/sign-up/*", element: <Login />},
 	{ path: "/auth/redirect", element: <div>Redirecting...</div>}, // Auth redirect handler - just shows loading while redirect happens
-	{ path: "/settings", element: <Settings />},
-	{ path: "/task", element: <Task />},
 	{ path: "/tenant-auth", element: <TenantAuth />},
 	{ path: "/tenantauth", element: <TenantAuth />},
+	
+	// Test/development routes
 	{ path: "/test-context-builder", element: <TestContextBuilder />},
 	{ path: "/testcontextbuilder", element: <TestContextBuilder />},
 	{ path: "/test-mutation-page", element: <TestMutationPage />},
 	{ path: "/testmutationpage", element: <TestMutationPage />},
-	{ path: "/workflow-install", element: <WorkflowInstall />},
-	{ path: "/workflowinstall", element: <WorkflowInstall />},
-	{ path: "/workflows", element: <Workflows />},
-	// Tenant-prefixed routes
+	
+	// Tenant-prefixed routes ONLY (subdomain-based tenant architecture)
 	{ path: "/:tenantSlug/hitl-tasks", element: <HitlTasks />},
 	{ path: "/:tenantSlug/settings", element: <Settings />},
 	{ path: "/:tenantSlug/workflows", element: <Workflows />},
-	{ path: "/:tenantSlug/dashboard", element: <Dashboard />},
+	{ path: "/:tenantSlug/context-builder", element: <ContextBuilder />},
+	{ path: "/:tenantSlug/contextbuilder", element: <ContextBuilder />},
+	{ path: "/:tenantSlug/task", element: <Task />},
+	{ path: "/:tenantSlug/workflow-install", element: <WorkflowInstall />},
+	{ path: "/:tenantSlug/workflowinstall", element: <WorkflowInstall />},
 ];
