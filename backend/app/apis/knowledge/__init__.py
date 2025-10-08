@@ -66,12 +66,21 @@ async def get_knowledge_index(
     try:
         conn = await get_db_connection()
         
-        # Query knowledge entries for this tenant
+        # Query knowledge bases for this tenant with chunk counts
         query = """
-            SELECT id, title, content, metadata, created_at, updated_at
-            FROM knowledge_entries 
-            WHERE tenant_id = $1
-            ORDER BY updated_at DESC
+            SELECT 
+                kb.id, 
+                kb.name, 
+                kb.description, 
+                kb.source_type,
+                kb.source_metadata, 
+                kb.document_count,
+                kb.total_chunks,
+                kb.created_at, 
+                kb.updated_at
+            FROM knowledge_bases kb
+            WHERE kb.tenant_id = $1
+            ORDER BY kb.updated_at DESC
         """
         
         rows = await conn.fetch(query, tenant_user.tenant_id)
@@ -80,11 +89,16 @@ async def get_knowledge_index(
         for row in rows:
             entries.append({
                 "id": str(row["id"]),
-                "title": row["title"],
-                "content": row["content"],
-                "metadata": row["metadata"] or {},
-                "created_at": row["created_at"].isoformat(),
-                "updated_at": row["updated_at"].isoformat()
+                "title": row["name"],
+                "content": row["description"] or "",
+                "metadata": {
+                    "source_type": row["source_type"],
+                    "source_metadata": row["source_metadata"] or {},
+                    "document_count": row["document_count"] or 0,
+                    "total_chunks": row["total_chunks"] or 0
+                },
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+                "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None
             })
         
         return KnowledgeIndexResponse(
@@ -104,7 +118,7 @@ async def upsert_knowledge_index(
     request: UpsertKnowledgeRequest,
     tenant_user: TenantAuthorizedUser = TenantUserDep
 ) -> UpsertKnowledgeResponse:
-    """Upsert knowledge entry for a tenant"""
+    """Upsert knowledge base for a tenant"""
     conn = None
     try:
         conn = await get_db_connection()
@@ -112,14 +126,14 @@ async def upsert_knowledge_index(
         entry_id = uuid.uuid4()
         now = datetime.utcnow()
         
-        # Insert or update knowledge entry
+        # Insert or update knowledge base
         query = """
-            INSERT INTO knowledge_entries (id, tenant_id, title, content, metadata, created_at, updated_at)
+            INSERT INTO knowledge_bases (id, tenant_id, name, description, source_metadata, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (tenant_id, title) 
+            ON CONFLICT (tenant_id, name) 
             DO UPDATE SET 
-                content = EXCLUDED.content,
-                metadata = EXCLUDED.metadata,
+                description = EXCLUDED.description,
+                source_metadata = EXCLUDED.source_metadata,
                 updated_at = EXCLUDED.updated_at
             RETURNING id
         """

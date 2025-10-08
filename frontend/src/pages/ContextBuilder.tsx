@@ -1,7 +1,7 @@
 
 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import { MetadataPanel } from '@/components/MetadataPanel';
 import { Layout } from '@/components/Layout';
 import { useAuthenticatedUser } from '@/components/AuthMiddleware';
 import { useTenant } from '@/utils/TenantProvider';
+import brain from '@/brain';
+import { toast } from '@/extensions/shadcn/hooks/use-toast';
 
 const ContextBuilder = () => {
   // Ensure user is authenticated for this protected page
@@ -26,6 +28,9 @@ const ContextBuilder = () => {
 
   const [activeTab, setActiveTab] = useState('upload');
   const [showMetadata, setShowMetadata] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [knowledgeList, setKnowledgeList] = useState<any[]>([]);
   const [metadata, setMetadata] = useState({
     title: '',
     type: 'General',
@@ -33,15 +38,100 @@ const ContextBuilder = () => {
     tags: []
   });
 
+  // Fetch knowledge list on mount and when tenant changes
+  useEffect(() => {
+    if (tenantSlug) {
+      fetchKnowledgeList();
+    }
+  }, [tenantSlug]);
+
+  const fetchKnowledgeList = async () => {
+    if (!tenantSlug) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await brain.get_knowledge_index({ tenantSlug });
+      if (response.data) {
+        setKnowledgeList(response.data.entries || []);
+      }
+    } catch (error) {
+      console.error('Error fetching knowledge list:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load knowledge bases',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAddKnowledge = () => {
     setShowMetadata(true);
   };
 
-  const handleSaveWithMetadata = () => {
-    // Implementation for saving knowledge with metadata would go here
-    console.log('Saving knowledge with metadata:', metadata);
-    console.log('For tenant:', tenant?.name, 'User:', user.displayName);
-    setShowMetadata(false);
+  const handleSaveWithMetadata = async () => {
+    if (!tenantSlug) {
+      toast({
+        title: 'Error',
+        description: 'No tenant context available',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!metadata.title || !metadata.type) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please provide a title and type',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Create knowledge base with metadata
+      const response = await brain.upsert_knowledge_index(
+        { tenantSlug },
+        {
+          title: metadata.title,
+          content: `${metadata.type} - ${metadata.intent}`,
+          metadata: {
+            type: metadata.type,
+            intent: metadata.intent,
+            tags: metadata.tags,
+            source_type: activeTab, // track which tab was used
+          },
+        }
+      );
+
+      if (response.data) {
+        toast({
+          title: 'Success',
+          description: 'Knowledge base created successfully',
+        });
+        
+        // Reset form and refresh list
+        setMetadata({
+          title: '',
+          type: 'General',
+          intent: 'Reference',
+          tags: []
+        });
+        setShowMetadata(false);
+        await fetchKnowledgeList();
+      }
+    } catch (error) {
+      console.error('Error creating knowledge base:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create knowledge base',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -142,6 +232,9 @@ const ContextBuilder = () => {
           <MetadataPanel
             metadata={metadata}
             onMetadataChange={setMetadata}
+            onSave={handleSaveWithMetadata}
+            onCancel={() => setShowMetadata(false)}
+            isLoading={isSaving}
           />
         )}
       </div>

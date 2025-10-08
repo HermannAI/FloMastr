@@ -9,7 +9,7 @@ interface TenantInfo {
   id: number;
   slug: string;
   name: string;
-  n8n_url: string;
+  n8n_url?: string; // Optional - may not be set for all tenants
   status: string;
 }
 

@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X, Plus, HelpCircle } from 'lucide-react';
+import { X, Plus, HelpCircle, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MetadataProps {
@@ -15,9 +15,18 @@ interface MetadataProps {
     tags: string[];
   };
   onMetadataChange: (metadata: any) => void;
+  onSave?: () => void | Promise<void>;
+  onCancel?: () => void;
+  isLoading?: boolean;
 }
 
-export const MetadataPanel = ({ metadata, onMetadataChange }: MetadataProps) => {
+export const MetadataPanel = ({ 
+  metadata, 
+  onMetadataChange, 
+  onSave,
+  onCancel,
+  isLoading = false 
+}: MetadataProps) => {
   const [newTag, setNewTag] = React.useState('');
   
   const handleTitleChange = (value: string) => {
@@ -186,6 +195,32 @@ export const MetadataPanel = ({ metadata, onMetadataChange }: MetadataProps) => 
             )}
           </div>
         </div>
+        
+        {/* Action Buttons */}
+        {(onSave || onCancel) && (
+          <div className="flex items-center justify-end gap-2 pt-4 border-t">
+            {onCancel && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+            )}
+            {onSave && (
+              <Button
+                type="button"
+                onClick={onSave}
+                disabled={isLoading}
+              >
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? 'Saving...' : 'Save Knowledge'}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );
