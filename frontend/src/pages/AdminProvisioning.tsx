@@ -198,7 +198,7 @@ const AdminProvisioning = () => {
                   required
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  This will be used in the subdomain: {formData.tenantSlug || 'tenant-slug'}.flomastr.com
+                  This will be used in the URL path: app.flomastr.com/{formData.tenantSlug || 'tenant-slug'}/hitl-tasks
                 </p>
               </div>
               

@@ -531,8 +531,8 @@ systemctl reload caddy
 - **Professional Branding**: Consistent FloMastr branding and legal footer across all pages
 
 ### **🏗️ Clean Tenant Routing Architecture**
-- **Tenant Slug Structure**: All tenant pages enforce `/:tenantSlug/page` URL pattern
-- **Subdomain Support**: Architecture supports `tenant.flomastr.com/page` subdomain routing
+- **Path-Based Tenant Routing**: All tenant pages use `/:tenantSlug/page` URL pattern (e.g., `/acme/hitl-tasks`)
+- **Tenant Isolation**: Complete multi-tenant data isolation via path-based routing
 - **Route Cleanup**: Removed direct tenant routes, enforcing proper tenant isolation
 - **Navigation Consistency**: All tenant navigation uses tenant-prefixed paths
 
@@ -1084,8 +1084,9 @@ Our architecture is composed of three distinct, interacting engines:
 
 - **Base Domain**: flomastr.com
 - **Admin Platform**: app.flomastr.com
-- **Tenant Subdomains**: {tenant_slug}.flomastr.com
+- **Tenant Access**: app.flomastr.com/{tenant_slug}/* (path-based routing)
 - **WhatsApp Engine**: engine.flomastr.com
+- **n8n Automation**: {tenant_slug}.n8n.flomastr.com (per-tenant n8n containers)
 
 ## 🚀 Implementation Status & Development Phases
 
@@ -1098,8 +1099,8 @@ Our architecture is composed of three distinct, interacting engines:
 **Outcome**: Implemented a centralized AuthMiddleware component that caches auth state per session, dramatically improving performance and security.
 
 ### ✅ **PHASE 3: CLERK MIGRATION (COMPLETED)**
-**Objective**: Migrate from Stack Auth to Clerk to support a subdomain architecture.  
-**Status**: ✅ **Migration Complete** - Clerk authentication fully implemented and working
+**Objective**: Migrate from Stack Auth to Clerk for improved authentication and multi-tenant support.  
+**Status**: ✅ **Migration Complete** - Clerk authentication fully implemented with path-based tenant routing
 
 ### ✅ **PHASE 4: WHATSAPP ENGINE MVP (COMPLETED)**
 **Objective**: Build a new, centralized microservice for all real-time WhatsApp communication.  

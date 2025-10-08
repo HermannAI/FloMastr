@@ -54,7 +54,7 @@ export const userRoutes: RouteObject[] = [
 	{ path: "/test-mutation-page", element: <TestMutationPage />},
 	{ path: "/testmutationpage", element: <TestMutationPage />},
 	
-	// Tenant-prefixed routes ONLY (subdomain-based tenant architecture)
+	// Tenant-prefixed routes (path-based tenant architecture: /tenantSlug/page)
 	{ path: "/:tenantSlug/hitl-tasks", element: <HitlTasks />},
 	{ path: "/:tenantSlug/settings", element: <Settings />},
 	{ path: "/:tenantSlug/workflows", element: <Workflows />},

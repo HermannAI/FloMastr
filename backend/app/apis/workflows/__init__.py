@@ -43,11 +43,11 @@ async def create_workflow(
 
 @router.get("/workflows", response_model=List[Workflow])
 async def list_workflows(
+    user: AuthorizedUser,
     tenant_id: Optional[str] = None,
     is_active: Optional[bool] = None,
     is_public: Optional[bool] = None,
-    category: Optional[str] = None,
-    user: AuthorizedUser
+    category: Optional[str] = None
 ) -> List[Workflow]:
     """List workflows with optional filters"""
     conn = await get_db_connection()
@@ -189,9 +189,9 @@ async def delete_workflow(
 @router.get("/workflows/{workflow_id}/executions", response_model=List[WorkflowExecution])
 async def get_workflow_executions(
     workflow_id: str,
+    user: AuthorizedUser,
     limit: int = 50,
-    offset: int = 0,
-    user: AuthorizedUser
+    offset: int = 0
 ) -> List[WorkflowExecution]:
     """Get executions for a specific workflow"""
     conn = await get_db_connection()

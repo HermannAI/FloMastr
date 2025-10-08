@@ -42,48 +42,36 @@ interface TenantProviderProps {
 }
 
 /**
- * Extracts tenant slug from hostname format: {tenant_slug}.flomastr.com
- * Returns null for the base admin domain (app.flomastr.com)
+ * Extracts tenant slug from URL path format: /tenantSlug/page
+ * Returns null for admin routes and non-tenant paths
  */
-const extractTenantSlugFromHostname = (hostname: string): string | null => {
-  // Handle localhost and development environments
-  if (hostname.includes('localhost') || hostname.includes('flomastr.com')) {
+const extractTenantSlugFromPath = (pathname: string): string | null => {
+  // Skip admin routes
+  if (pathname.startsWith('/admin-') || pathname.startsWith('/login') || 
+      pathname.startsWith('/auth') || pathname.startsWith('/sign-') ||
+      pathname.startsWith('/test-') || pathname === '/') {
     return null;
   }
   
-  // Check if this is the base admin domain
-  if (hostname === 'app.flomastr.com') {
-    return null;
+  // Extract tenant slug from path pattern: /tenantSlug/page
+  const pathParts = pathname.split('/').filter(Boolean);
+  
+  // First part should be tenant slug if this is a tenant route
+  if (pathParts.length >= 2) {
+    const potentialSlug = pathParts[0];
+    
+    // Validate it's not a system route
+    if (!potentialSlug.startsWith('_') && !potentialSlug.startsWith('api')) {
+      return potentialSlug;
+    }
   }
   
-  // Extract tenant slug from subdomain pattern: {tenant_slug}.flomastr.com
-  const parts = hostname.split('.');
-  
-  // Must have at least 3 parts: [tenant_slug, flomastr, com]
-  if (parts.length < 3) {
-    return null;
-  }
-  
-  // Check if it's a flomastr.com subdomain
-  const domain = parts.slice(-2).join('.'); // Get 'flomastr.com'
-  if (domain !== 'flomastr.com') {
-    return null;
-  }
-  
-  // Return the first part as tenant slug
-  const tenantSlug = parts[0];
-  
-  // Validate tenant slug format (basic validation)
-  if (!tenantSlug || tenantSlug === 'app' || tenantSlug === 'www') {
-    return null;
-  }
-  
-  return tenantSlug;
+  return null;
 };
 
 /**
- * Provides tenant context based on hostname subdomain
- * Supports both admin domain (app.flomastr.com) and tenant subdomains ({tenant_slug}.flomastr.com)
+ * Provides tenant context based on URL path
+ * Supports path-based tenant architecture: /tenantSlug/page
  */
 export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
@@ -110,8 +98,8 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
       setError(null);
       
       try {
-        // Extract tenant slug from hostname instead of URL path
-        const extractedSlug = extractTenantSlugFromHostname(window.location.hostname);
+        // Extract tenant slug from URL path (e.g., /acme/hitl-tasks)
+        const extractedSlug = extractTenantSlugFromPath(location.pathname);
         
         if (extractedSlug) {
           // Try to resolve tenant by slug

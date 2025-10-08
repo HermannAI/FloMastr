@@ -8,14 +8,13 @@ import { Layout } from '@/components/Layout';
 import { toast } from 'sonner';
 import brain from 'brain';
 import { useTenant } from 'utils/TenantProvider';
-import type { TenantProfileResponse, UpdateTenantProfileRequest } from 'types';
+import type { TenantProfileResponse, TenantProfileRequest, BrandingResponse } from '../brain/data-contracts';
 
 export default function Settings() {
   const { tenantSlug } = useTenant();
   const [tenantId, setTenantId] = useState<string>('');
   const [tenantName, setTenantName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
-  const [n8nUrl, setN8nUrl] = useState('');
   const [status, setStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,20 +35,19 @@ export default function Settings() {
         setTenantId(tenantSlug);
         
         // Fetch tenant profile
-        const profileResponse = await brain.get_tenant_profile({ tenantId: tenantSlug });
+        const profileResponse = await brain.get_tenant_profile();
         const profileData: TenantProfileResponse = await profileResponse.json();
         
         setTenantName(profileData.name);
-        setContactEmail(profileData.contact_email || '');
-        setN8nUrl(profileData.n8n_url || '');
-        setStatus(profileData.status);
+        setContactEmail(profileData.primary_contact_email || '');
+        setStatus('active'); // Default status since it's not in the response
         
         // Fetch branding settings
-        const brandingResponse = await brain.get_branding_settings({ tenantId: tenantSlug });
-        const brandingData = await brandingResponse.json();
+        const brandingResponse = await brain.get_branding_settings();
+        const brandingData: BrandingResponse = await brandingResponse.json();
         
-        setPrimaryColor(brandingData.primary_color || '#0052cc');
-        setExistingLogoUrl(brandingData.logo_url);
+        setPrimaryColor(brandingData.brand_primary || '#0052cc');
+        setExistingLogoUrl(brandingData.logo_svg);
       } catch (error) {
         console.error('Failed to load tenant data:', error);
         setError('Failed to load tenant information');

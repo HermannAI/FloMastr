@@ -44,7 +44,7 @@ function AuthRouteHandler({ children }: { children: React.ReactNode }) {
         const context = JSON.parse(tenantContext);
         // Clean up the stored context after use
         localStorage.removeItem('tenant-context');
-        // Redirect to clean path (no tenant slug prefix for subdomain architecture)
+        // Redirect to tenant-prefixed path
         return <Navigate to={context.returnPath} replace={true} />;
       } catch (e) {
         console.warn('Failed to parse tenant context:', e);
@@ -56,8 +56,9 @@ function AuthRouteHandler({ children }: { children: React.ReactNode }) {
     if (tenantSlug) {
       const queryParams = new URLSearchParams(location.search);
       const next = queryParams.get('next') || '/hitl-tasks';
-      // Use clean path for subdomain architecture
-      return <Navigate to={next} replace={true} />;
+      // Redirect to tenant-prefixed path
+      const tenantPath = `/${tenantSlug}${next.startsWith('/') ? next : `/${next}`}`;
+      return <Navigate to={tenantPath} replace={true} />;
     }
     
     // Fall back to default LoginRedirect for non-tenant users

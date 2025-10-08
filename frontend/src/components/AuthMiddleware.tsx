@@ -48,7 +48,6 @@ const ROUTE_CONFIG: Record<string, RouteMetadata> = {
   '/admin-waba-templates': { authRequired: false, requireSuperAdmin: true }, // Super admin bypass
   
   // Tenant routes (authenticated users - but super admins bypass auth)
-  '/dashboard': { authRequired: true },
   '/hitl-tasks': { authRequired: true },
   '/settings': { authRequired: true },
   '/task': { authRequired: true },

@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 
 /**
  * Hook that provides tenant-aware navigation functions
- * Now works with subdomain-based tenant architecture
+ * Works with path-based tenant architecture (/tenantSlug/page)
  */
 export const useTenantNavigation = () => {
   const { tenantSlug } = useTenant();
@@ -13,12 +13,11 @@ export const useTenantNavigation = () => {
   const location = useLocation();
 
   /**
-   * Navigate to a path - simplified for subdomain architecture
-   * No longer prefixes paths with tenant slug
+   * Navigate to a path with tenant context
+   * Paths should already include tenant slug prefix (e.g., /acme/hitl-tasks)
    */
   const navigateWithTenant = useCallback((path: string) => {
-    // Simply navigate to the clean path
-    // Tenant context is handled by subdomain, not URL path
+    // Navigate to the path as-is (should already include tenant slug)
     navigate(path);
   }, [navigate]);
 
@@ -49,14 +48,17 @@ export const useTenantNavigation = () => {
   }, [getCurrentPagePath]);
 
   /**
-   * Generate a clean path (no longer tenant-aware via URL path)
-   * Returns the path as-is since tenant context is in subdomain
+   * Generate a tenant-aware path by prefixing with tenant slug
+   * Returns path with tenant prefix (e.g., /acme/hitl-tasks)
    */
   const getTenantAwarePath = useCallback((path: string) => {
-    // In subdomain architecture, just return the clean path
-    // Tenant context is handled by hostname, not URL path
-    return path;
-  }, []);
+    // If no tenant slug or path already has tenant prefix, return as-is
+    if (!tenantSlug || path.startsWith(`/${tenantSlug}/`)) {
+      return path;
+    }
+    // Add tenant slug prefix to path
+    return `/${tenantSlug}${path.startsWith('/') ? path : `/${path}`}`;
+  }, [tenantSlug]);
 
   return {
     navigateWithTenant,
@@ -64,7 +66,7 @@ export const useTenantNavigation = () => {
     isActivePath,
     getTenantAwarePath,
     tenantSlug,
-    isTenantPrefixed: false // Always false in subdomain architecture
+    isTenantPrefixed: tenantSlug !== null // True if we have a tenant context
   };
 };
 
