@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Layout } from '@/components/Layout';
 import { toast } from 'sonner';
-import brain from 'brain';
-import { useTenant } from 'utils/TenantProvider';
+import brain from '../brain';
+import { useTenant } from '../utils/TenantProvider';
 import type { TenantProfileResponse, TenantProfileRequest, BrandingResponse } from '../brain/data-contracts';
 
 export default function Settings() {

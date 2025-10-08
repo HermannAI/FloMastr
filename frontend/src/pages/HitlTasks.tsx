@@ -11,8 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Clock, User, AlertCircle, CheckCircle, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { Layout } from '@/components/Layout';
-import brain from 'brain';
-import { useTenant } from 'utils/TenantProvider';
+import brain from '../brain';
+import { useTenant } from '../utils/TenantProvider';
 import type { HitlTask } from '../brain/data-contracts';
 
 // Fetch tasks from the API

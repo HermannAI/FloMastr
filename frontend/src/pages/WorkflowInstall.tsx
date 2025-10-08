@@ -10,8 +10,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, ExternalLink, CheckCircle, AlertCircle, Clock, X } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
-import { useTenant } from "utils/TenantProvider";
-import brain from "brain";
+import { useTenant } from "../utils/TenantProvider";
+import brain from "../brain";
 import { WorkflowResponse } from "types";
 
 type SetupState = 'loading' | 'ready' | 'in-progress' | 'completed' | 'error' | 'human-requested';

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Eye, Edit3, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import brain from 'brain';
+import brain from '../brain';
 
 interface KnowledgeCard {
   id: string;

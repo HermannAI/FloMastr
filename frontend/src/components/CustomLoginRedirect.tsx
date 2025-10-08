@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 // import { useUserGuardContext } from 'app/auth';
 // import { LoginRedirect } from 'app/auth';
-import brain from 'brain';
+import brain from '../brain';
 import { mode, Mode } from 'app';
 
 const popFromLocalStorage = (key: string): string | null => {

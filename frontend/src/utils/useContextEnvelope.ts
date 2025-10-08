@@ -2,8 +2,8 @@
 
 
 import { useQuery } from '@tanstack/react-query';
-import brain from 'brain';
-import { ContextEnvelope } from 'brain/data-contracts';
+import brain from '../brain';
+import { ContextEnvelope } from '../brain/data-contracts';
 
 interface UseContextEnvelopeParams {
   tenantId: string;

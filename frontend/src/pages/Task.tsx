@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Clock, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import brain from 'brain';
-import { useTenant } from 'utils/TenantProvider';
+import brain from '../brain';
+import { useTenant } from '../utils/TenantProvider';
 import type { HitlTaskDetail } from '../brain/data-contracts';
 
 // Fetch task detail from the API

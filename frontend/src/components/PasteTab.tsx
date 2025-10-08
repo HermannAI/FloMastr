@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Type, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import brain from 'brain';
+import brain from '../brain';
 
 interface PasteTabProps {
   metadata: {

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye, Archive, Search, Filter, RefreshCw, Calendar, Tag, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import brain from 'brain';
+import brain from '../brain';
 
 interface KnowledgeEntry {
   id: string;

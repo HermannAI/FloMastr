@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import brain from 'brain';
+import brain from '../brain';
 
 interface UploadTabProps {
   metadata: {

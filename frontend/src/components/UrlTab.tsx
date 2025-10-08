@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import brain from 'brain';
+import brain from '../brain';
 
 interface UrlTabProps {
   metadata: {
