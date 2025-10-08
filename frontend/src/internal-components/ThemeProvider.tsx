@@ -22,11 +22,12 @@ export const ThemeProviderContext =
   createContext<ThemeProviderState>(initialState);
 
 declare const __APP_ID__: string;
+const APP_ID = typeof __APP_ID__ !== 'undefined' ? __APP_ID__ : 'flo-mastr';
 
 export function ThemeProvider({
   children,
   defaultTheme = "system",
-  storageKey = `flomastr-${__APP_ID__}-ui-theme`,
+  storageKey = `flomastr-${APP_ID}-ui-theme`,
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
