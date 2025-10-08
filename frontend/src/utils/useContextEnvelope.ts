@@ -93,14 +93,11 @@ export const useContextEnvelope = ({
       }
       // Retry up to 2 times for other errors
       return failureCount < 2;
-    },
-    onError: (error) => {
-      console.error('Context envelope query error:', error);
     }
   });
   
   return {
-    data: query.data,
+    data: query.data as ContextEnvelope | undefined,
     isLoading: query.isLoading,
     error: query.error as Error | null,
     refetch: query.refetch

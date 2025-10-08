@@ -61,8 +61,7 @@ export default function WorkflowInstall() {
         setSetupState('in-progress');
         
         const installResponse = await brain.install_workflow({
-          master_workflow_id: workflowId,
-          tenant_slug: tenant.slug
+          master_workflow_id: workflowId
         });
         
         const installData = await installResponse.json();
@@ -131,7 +130,7 @@ export default function WorkflowInstall() {
 
   // Construct iframe URL
   const iframeUrl = tenant && installedWorkflowId
-    ? `https://${tenant.slug}.n8n.flomastr.com/workflow-setup/${installedWorkflowId}?embed=true&theme=${theme}&brand_primary=${encodeURIComponent(tenant.branding?.primary_color || '#0052cc')}`
+    ? `https://${tenant.slug}.n8n.flomastr.com/workflow-setup/${installedWorkflowId}?embed=true&theme=${theme}&brand_primary=${encodeURIComponent('#0052cc')}`
     : null;
 
   if (loading || tenantLoading) {
@@ -263,7 +262,7 @@ export default function WorkflowInstall() {
             Cancel
           </Button>
           
-          {setupState === 'pending-human' && (
+          {setupState === 'human-requested' && (
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-4">
                 Your setup request is in queue. Our engineers will finalize AI prompts, test, and activate within 24 hours.
@@ -275,7 +274,7 @@ export default function WorkflowInstall() {
           )}
           
           {setupState === 'ready' && (
-            <Button onClick={() => setSetupState('pending-human')}>
+            <Button onClick={() => setSetupState('human-requested')}>
               Request Human Setup
             </Button>
           )}
