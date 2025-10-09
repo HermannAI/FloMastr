@@ -8,6 +8,7 @@ import { ClerkProvider } from "@clerk/clerk-react";
 
 // Get the Clerk Publishable Key from the environment variables
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const CLERK_PROXY_URL = import.meta.env.VITE_CLERK_PROXY_URL;
 
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
@@ -18,6 +19,7 @@ export const AppWrapper = () => {
     <OuterErrorBoundary>
       <ClerkProvider 
         publishableKey={PUBLISHABLE_KEY}
+        proxyUrl={CLERK_PROXY_URL}
         appearance={{
           baseTheme: undefined, // Use system theme
         }}
